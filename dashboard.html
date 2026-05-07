@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SIIT Lost & Found – Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <span class="brand-name">SIIT Lost<span class="amp">&</span>Found</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active">Home</a></li>
+      <li><a href="#" class="nav-link">How it Works</a></li>
+      <li><a href="#" class="nav-link">Recent Reports</a></li>
+      <li><a href="#" class="nav-link">Browse</a></li>
+    </ul>
+    <div class="nav-user">
+      <div class="user-avatar">NM</div>
+      <span class="user-name">Nico Mar Oposa</span>
+      <i class="fas fa-chevron-down caret"></i>
+      <div class="user-dropdown">
+        <a href="#"><i class="fas fa-user"></i> Profile</a>
+        <a href="#"><i class="fas fa-gear"></i> Settings</a>
+        <a href="#" class="logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- WELCOME HEADER -->
+    <section class="welcome-section">
+      <div class="welcome-text">
+        <p class="welcome-sub">Hey there, <strong>Nico Mar Oposa</strong>! Ready to help the community today?</p>
+      </div>
+      <div class="report-btn-wrapper">
+        <button class="btn-report" id="reportBtn">
+          <i class="fas fa-plus"></i> Report New Item
+        </button>
+        <div class="report-dropdown" id="reportDropdown">
+          <a href="#"><i class="fas fa-magnifying-glass"></i> I Lost Something</a>
+          <a href="#"><i class="fas fa-hand-holding-heart"></i> I Found Something</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS CARDS -->
+    <section class="stats-grid">
+      <div class="stat-card lost">
+        <div class="stat-icon"><i class="fas fa-magnifying-glass"></i></div>
+        <div class="stat-info">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Items You Lost</span>
+        </div>
+      </div>
+      <div class="stat-card found">
+        <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
+        <div class="stat-info">
+          <span class="stat-number">1</span>
+          <span class="stat-label">Items You Found</span>
+        </div>
+      </div>
+      <div class="stat-card claimed">
+        <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+        <div class="stat-info">
+          <span class="stat-number">0</span>
+          <span class="stat-label">Total Claimed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOWER GRID -->
+    <section class="lower-grid" style="grid-template-columns: 1fr 320px 1fr; gap: 1.2rem; align-items: start;">
+
+      <!-- ACTIVITY LOG -->
+      <div class="panel activity-panel">
+        <h2 class="panel-title">Your Activity Log</h2>
+        <table class="activity-table">
+          <thead>
+            <tr>
+              <th>Item Details</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="item-cell">
+                <div class="item-thumb">
+                  <i class="fas fa-laptop"></i>
+                </div>
+                <div class="item-meta">
+                  <span class="item-name">Laptop</span>
+                  <span class="item-date">Reported: Mar 06, 2026</span>
+                </div>
+              </td>
+              <td><span class="badge-category">Electronics</span></td>
+              <td><span class="badge-status pending">Pending</span></td>
+              <td><button class="btn-view">View Details</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="empty-hint" style="display:none;">No activity yet. Start by reporting an item!</p>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-column">
+
+        <!-- UPDATES -->
+        <div class="panel updates-panel">
+          <div class="updates-header">
+            <h2 class="panel-title">Updates</h2>
+            <span class="badge-count">0</span>
+          </div>
+          <div class="updates-empty">
+            <i class="fas fa-bell-slash"></i>
+            <p>All caught up!</p>
+          </div>
+        </div>
+
+        <!-- QUICK TIP -->
+        <div class="panel tip-panel">
+          <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
+          <div class="tip-content">
+            <h3 class="tip-title">Quick Tip</h3>
+            <p class="tip-text">Providing high-quality photos and specific locations significantly improves the chances of item recovery. Our admins typically process reports within 24 hours.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CLAIM REQUESTS -->
+      <section class="panel claims-panel" style="margin:0;">
+        <div class="claims-header">
+          <h2 class="panel-title">Your Claim Requests</h2>
+          <span class="badge-count">0 Total</span>
+        </div>
+        <table class="activity-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Submitted On</th>
+              <th>Tracking Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="empty-row">
+              <td colspan="4">
+                <div class="empty-state">
+                  <i class="fas fa-inbox"></i>
+                  <p>No claim requests yet.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </section>
+
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
