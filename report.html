@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIIT Lost & Found – Report</title>
+  <link rel="stylesheet" href="report.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <i class="fas fa-shield-halved"></i>
+      </div>
+      <span class="brand-name">SIIT Lost<span class="amp">&</span>Found</span>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="dashboard.html" class="nav-link">Home</a></li>
+      <li><a href="report.html" class="nav-link active">Report</a></li>
+      <li><a href="#" class="nav-link">How it Works</a></li>
+      <li><a href="#" class="nav-link">Recent Reports</a></li>
+      <li><a href="#" class="nav-link">Browse</a></li>
+    </ul>
+
+    <div class="nav-user">
+      <div class="user-avatar">NM</div>
+      <span class="user-name">Nico Mar Oposa</span>
+      <i class="fas fa-chevron-down caret"></i>
+      <div class="user-dropdown">
+        <a href="#"><i class="fas fa-user"></i> Profile</a>
+        <a href="#"><i class="fas fa-gear"></i> Settings</a>
+        <a href="#" class="logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="badge">REPORT & BROWSE</span>
+        <h1>Share lost or found items with the community.</h1>
+        <p>Report your item quickly, then browse all posted reports in one place. This page is built for fast reporting and clear item discovery.</p>
+      </div>
+      <div class="hero-cta">
+        <button class="btn-primary" id="focusReportBtn"><i class="fas fa-plus"></i> Start a Report</button>
+      </div>
+    </section>
+
+    <section class="report-grid">
+      <div class="panel report-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-label">Create a new report</p>
+            <h2>Report Item</h2>
+          </div>
+          <span class="badge-pill" id="currentFilter">Showing: All</span>
+        </div>
+
+        <form class="report-form" id="reportForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="itemType">Report Type</label>
+              <select id="itemType" name="itemType" required>
+                <option value="lost">I Lost Something</option>
+                <option value="found">I Found Something</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="itemCategory">Category</label>
+              <select id="itemCategory" name="itemCategory" required>
+                <option value="Electronics">Electronics</option>
+                <option value="Clothing">Clothing</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Documents">Documents</option>
+                <option value="Bag">Bag/Backpack</option>
+                <option value="Keys">Keys</option>
+                <option value="Wallet">Wallet/ID</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="itemName">Item Name</label>
+              <input type="text" id="itemName" name="itemName" placeholder="e.g., Silver watch" required />
+            </div>
+            <div class="form-group">
+              <label for="itemColor">Color / Description</label>
+              <input type="text" id="itemColor" name="itemColor" placeholder="e.g., silver with black strap" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="itemLocation">Location</label>
+            <input type="text" id="itemLocation" name="itemLocation" placeholder="Where did you lose or find it?" required />
+          </div>
+
+          <div class="form-group">
+            <label for="itemDetails">Additional Details</label>
+            <textarea id="itemDetails" name="itemDetails" rows="4" placeholder="Any extra details that can help identify the item"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group file-upload">
+              <label for="itemPhoto" class="file-label"><i class="fas fa-cloud-arrow-up"></i> Upload photo (optional)</label>
+              <input type="file" id="itemPhoto" name="itemPhoto" accept="image/*" />
+              <p class="file-name" id="fileName"></p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-submit"><i class="fas fa-paper-plane"></i> Submit Report</button>
+            <button type="button" class="btn-secondary" id="clearFormBtn">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel browse-panel">
+        <div class="panel-header browse-header">
+          <div>
+            <p class="panel-label">Browse posted items</p>
+            <h2>Available Reports</h2>
+          </div>
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="lost">Lost</button>
+            <button class="filter-btn" data-filter="found">Found</button>
+          </div>
+        </div>
+
+        <div class="browse-list" id="browseList"></div>
+        <div class="empty-state" id="browseEmpty">
+          <i class="fas fa-inbox"></i>
+          <p>No reports posted yet. Submit a report to see it here.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="report.js"></script>
+</body>
+</html>
