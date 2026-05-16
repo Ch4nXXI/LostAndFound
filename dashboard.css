@@ -32,7 +32,7 @@
 }
 
 body {
-  font-family: var(--font-body);
+  font-family: var(--font-body, 'DM Sans', 'Poppins', sans-serif);
   background-color: var(--cream);
   color: var(--text-dark);
   min-height: 100vh;

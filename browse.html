@@ -1,0 +1,92 @@
+<!-- filepath: c:\Users\Christian\Documents\A. Lost and Found\browse.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Reports - CTU Lost & Found</title>
+    <link rel="stylesheet" href="browse.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <div class="nav-brand">
+        <div class="nav-logo">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <span class="brand-name">CTU Lost<span class="amp">&</span>Found</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="dashboard.html" class="nav-link">Home</a></li>
+        <li><a href="report.html" class="nav-link">Report</a></li>
+        <li><a href="browse.html" class="nav-link active">Browse</a></li>
+        <li><a href="#" class="nav-link">About</a></li>
+      </ul>
+      <div class="nav-user">
+        <div class="user-avatar">U</div>
+        <span class="user-name">User</span>
+        <i class="fas fa-chevron-down caret"></i>
+        <div class="user-dropdown">
+          <a href="#"><i class="fas fa-user"></i> Profile</a>
+          <a href="#" class="logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <section class="browse-header">
+            <h1>Browse Reports</h1>
+            <p>View all reports from the CTU community</p>
+        </section>
+
+        <!-- FILTERS SECTION -->
+        <section class="filters-section">
+            <div class="filter-group">
+                <label for="item-type">Item Type:</label>
+                <select id="item-type">
+                    <option value="all">All Items</option>
+                    <option value="lost">Lost Items Only</option>
+                    <option value="found">Found Items Only</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="date-range">Date Range:</label>
+                <select id="date-range">
+                    <option value="all">All Time</option>
+                    <option value="day">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+            </div>
+
+            <button id="reset-filters" class="btn-reset">Reset Filters</button>
+        </section>
+
+        <!-- REPORTS GRID -->
+        <section class="reports-grid" id="reports-grid">
+            <!-- Reports will be dynamically inserted here -->
+        </section>
+        <h2 style="margin-top:2.5rem;">Claimed Items</h2>
+        <section class="reports-grid" id="claimed-items-section">
+            <!-- Claimed items will be dynamically inserted here -->
+        </section>
+    </main>
+
+    <!-- MODAL FOR REPORT DETAILS -->
+    <div id="report-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body">
+                <!-- Report details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="browse.js"></script>
+</body>
+</html>

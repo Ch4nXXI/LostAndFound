@@ -23,7 +23,7 @@ if (document.querySelector('.register-btn')) {
         // Get users array from localStorage
         let users = JSON.parse(localStorage.getItem('siit_users')) || [];
         if (users.some(u => u.email === email)) {
-            alert('Email already in use');
+            alert('email already in use');
             return;
         }
         users.push({firstName, lastName, phone, email, password});
@@ -81,6 +81,23 @@ if (window.location.pathname.endsWith('dashboard.html')) {
         document.addEventListener('click', () => {
             reportDropdown.classList.remove('show');
         });
+        
+        // Report form logic
+        const lostLink = reportDropdown.querySelector('a:nth-child(1)');
+        const foundLink = reportDropdown.querySelector('a:nth-child(2)');
+        
+        if (lostLink) {
+            lostLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showReportForm('lost');
+            });
+        }
+        if (foundLink) {
+            foundLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showReportForm('found');
+            });
+        }
     }
     // User dropdown
     const navUser = document.querySelector('.nav-user');
@@ -101,4 +118,115 @@ if (window.location.pathname.endsWith('dashboard.html')) {
             window.location.href = 'index.html';
         });
     }
+    // Show only the logged-in user's reports in the dashboard
+    const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+    // Example: update activity log table
+    const activityTableBody = document.querySelector('.activity-table tbody');
+    if (activityTableBody) {
+        if (userReports.length === 0) {
+            activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting an item!</p></div></td></tr>`;
+        } else {
+            activityTableBody.innerHTML = userReports.map(report => `
+                <tr>
+                  <td class="item-cell">
+                    <div class="item-thumb">
+                      <i class="fas ${report.type === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i>
+                    </div>
+                    <div class="item-meta">
+                      <span class="item-name">${report.itemName}</span>
+                      <span class="item-date">Reported: ${new Date(report.date).toLocaleDateString()}</span>
+                    </div>
+                  </td>
+                  <td><span class="badge-category">${report.category}</span></td>
+                  <td><span class="badge-status ${report.claimed ? 'resolved' : 'pending'}">${report.claimed ? 'Claimed' : 'Pending'}</span></td>
+                  <td><button class="btn-view">View Details</button></td>
+                </tr>
+            `).join('');
+        }
+    }
+}
+
+// Show report form
+function showReportForm(type) {
+    const modal = document.createElement('div');
+    modal.id = 'report-form-modal';
+    modal.style.cssText = 'display:flex;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.5);align-items:center;justify-content:center;';
+    
+    modal.innerHTML = `
+        <div style="background-color:white;padding:2rem;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+            <span style="color:#aaa;float:right;font-size:2rem;font-weight:bold;cursor:pointer;" onclick="document.getElementById('report-form-modal').remove();">&times;</span>
+            <h2 style="color:#1b5e20;margin-bottom:1.5rem;">Report ${type === 'lost' ? 'Lost' : 'Found'} Item</h2>
+            
+            <form id="report-form">
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Item Name</label>
+                    <input type="text" id="item-name" placeholder="Enter item name" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
+                </div>
+                
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Category</label>
+                    <select id="item-category" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
+                        <option value="">Select category</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Accessories">Accessories</option>
+                        <option value="Documents">Documents</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Location</label>
+                    <input type="text" id="item-location" placeholder="Where was it ${type === 'lost' ? 'lost' : 'found'}?" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
+                </div>
+                
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Description</label>
+                    <textarea id="item-description" placeholder="Provide details about the item" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;resize:vertical;min-height:100px;" required></textarea>
+                </div>
+                
+                <button type="submit" style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#2e7d32,#43a047);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Submit Report</button>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    document.getElementById('report-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const loggedInEmail = localStorage.getItem('siit_logged_in');
+        if (!loggedInEmail) {
+            alert('Please log in to submit a report.');
+            return;
+        }
+        
+        const report = {
+            type: type,
+            itemName: document.getElementById('item-name').value,
+            category: document.getElementById('item-category').value,
+            location: document.getElementById('item-location').value,
+            description: document.getElementById('item-description').value,
+            date: new Date().toISOString()
+        };
+        
+        // Save to user's own reports
+        const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+        userReports.push(report);
+        localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
+        // Save to global reports for browse page
+        let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+        const users = JSON.parse(localStorage.getItem('siit_users')) || [];
+        const user = users.find(u => u.email === loggedInEmail);
+        report.userName = user ? user.firstName + ' ' + user.lastName : '';
+        report.userEmail = loggedInEmail;
+        report.claimed = false;
+        allReports.push(report);
+        localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
+        alert('Report submitted successfully!');
+        window.location.href = 'browse.html';
+    });
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.remove();
+    });
 }
