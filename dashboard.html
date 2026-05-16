@@ -39,42 +39,39 @@
 
   <!-- MAIN CONTENT -->
   <main class="main">
-
-    <!-- WELCOME HEADER -->
-    <section class="welcome-section">
-      <div class="welcome-text">
-        <p class="welcome-sub">Hey there, <strong></strong>! Ready to help the community today?</p>
-      </div>
-  
-    </section>
-
-    <!-- STATS CARDS -->
-    <section class="stats-grid">
-      <div class="stat-card lost">
-        <div class="stat-icon"><i class="fas fa-magnifying-glass"></i></div>
-        <div class="stat-info">
-          <span class="stat-number">0</span>
-          <span class="stat-label">Items You Lost</span>
+    <div class="left-content">
+      <!-- WELCOME HEADER -->
+      <section class="welcome-section">
+        <div class="welcome-text">
+          <p class="welcome-sub">Hey there, <strong></strong>! Ready to help the community today?</p>
         </div>
-      </div>
-      <div class="stat-card found">
-        <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
-        <div class="stat-info">
-          <span class="stat-number">1</span>
-          <span class="stat-label">Items You Found</span>
-        </div>
-      </div>
-      <div class="stat-card claimed">
-        <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
-        <div class="stat-info">
-          <span class="stat-number">0</span>
-          <span class="stat-label">Total Claimed</span>
-        </div>
-      </div>
-    </section>
+    
+      </section>
 
-    <!-- LOWER GRID -->
-    <section class="lower-grid" style="grid-template-columns: 1fr 320px 1fr; gap: 1.2rem; align-items: start;">
+      <!-- STATS CARDS -->
+      <section class="stats-grid">
+        <div class="stat-card lost">
+          <div class="stat-icon"><i class="fas fa-magnifying-glass"></i></div>
+          <div class="stat-info">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Items You Lost</span>
+          </div>
+        </div>
+        <div class="stat-card found">
+          <div class="stat-icon"><i class="fas fa-hand-holding-heart"></i></div>
+          <div class="stat-info">
+            <span class="stat-number">1</span>
+            <span class="stat-label">Items You Found</span>
+          </div>
+        </div>
+        <div class="stat-card claimed">
+          <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+          <div class="stat-info">
+            <span class="stat-number">0</span>
+            <span class="stat-label">Total Claimed</span>
+          </div>
+        </div>
+      </section>
 
       <!-- ACTIVITY LOG -->
       <div class="panel activity-panel">
@@ -95,34 +92,8 @@
         <p class="empty-hint" style="display:none;">No activity yet. Start by reporting an item!</p>
       </div>
 
-      <!-- RIGHT COLUMN -->
-      <div class="right-column">
-
-        <!-- UPDATES -->
-        <div class="panel updates-panel">
-          <div class="updates-header">
-            <h2 class="panel-title">Updates</h2>
-            <span class="badge-count">0</span>
-          </div>
-          <div class="updates-empty">
-            <i class="fas fa-bell-slash"></i>
-            <p>All caught up!</p>
-          </div>
-        </div>
-
-        <!-- QUICK TIP -->
-        <div class="panel tip-panel">
-          <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
-          <div class="tip-content">
-            <h3 class="tip-title">Quick Tip</h3>
-            <p class="tip-text">Providing high-quality photos and specific locations significantly improves the chances of item recovery. Our admins typically process reports within 24 hours.</p>
-          </div>
-        </div>
-
-      </div>
-
       <!-- CLAIM REQUESTS -->
-      <section class="panel claims-panel" style="margin:0;">
+      <section class="panel claims-panel">
         <div class="claims-header">
           <h2 class="panel-title">Your Claim Requests</h2>
           <span class="badge-count">0 Total</span>
@@ -148,9 +119,17 @@
           </tbody>
         </table>
       </section>
-
-    </section>
-
+    </div>
+    <div class="right-column">
+      <!-- QUICK TIP -->
+      <div class="panel tip-panel">
+        <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
+        <div class="tip-content">
+          <h3 class="tip-title">Quick Tip</h3>
+          <p class="tip-text">Providing high-quality photos and specific locations significantly improves the chances of item recovery. Our admins typically process reports within 24 hours.</p>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="main.js"></script>

@@ -1,5 +1,8 @@
 // main.js
 
+// Declare loggedInEmail once for all page logic
+const loggedInEmail = localStorage.getItem('siit_logged_in');
+
 // Registration logic for SignUp.html
 if (document.querySelector('.register-btn')) {
     const registerBtn = document.querySelector('.register-btn');
@@ -54,7 +57,6 @@ if (document.getElementById('login-btn')) {
 // Dashboard logic for dashboard.html
 if (window.location.pathname.endsWith('dashboard.html')) {
     // Redirect to login if not logged in
-    const loggedInEmail = localStorage.getItem('siit_logged_in');
     if (!loggedInEmail) {
         window.location.href = 'index.html';
     }
@@ -120,13 +122,22 @@ if (window.location.pathname.endsWith('dashboard.html')) {
     }
     // Show only the logged-in user's reports in the dashboard
     const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+    // Update stats
+    const lostCount = userReports.filter(r => r.type === 'lost').length;
+    const foundCount = userReports.filter(r => r.type === 'found').length;
+    document.querySelector('.stat-card.lost .stat-number').textContent = lostCount;
+    document.querySelector('.stat-card.found .stat-number').textContent = foundCount;
+    // Total claimed (items this user has claimed)
+    let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+    const claimedCount = allReports.filter(r => r.claimerEmail === loggedInEmail).length;
+    document.querySelector('.stat-card.claimed .stat-number').textContent = claimedCount;
     // Example: update activity log table
     const activityTableBody = document.querySelector('.activity-table tbody');
     if (activityTableBody) {
         if (userReports.length === 0) {
             activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting an item!</p></div></td></tr>`;
         } else {
-            activityTableBody.innerHTML = userReports.map(report => `
+            activityTableBody.innerHTML = userReports.map((report, idx) => `
                 <tr>
                   <td class="item-cell">
                     <div class="item-thumb">
@@ -139,10 +150,36 @@ if (window.location.pathname.endsWith('dashboard.html')) {
                   </td>
                   <td><span class="badge-category">${report.category}</span></td>
                   <td><span class="badge-status ${report.claimed ? 'resolved' : 'pending'}">${report.claimed ? 'Claimed' : 'Pending'}</span></td>
-                  <td><button class="btn-view">View Details</button></td>
+                  <td><button class="btn-view" onclick="showDashboardReportDetails(${idx})">View Details</button></td>
                 </tr>
             `).join('');
         }
+    }
+    // View details modal for activity log
+    window.showDashboardReportDetails = function(idx) {
+        const report = userReports[idx];
+        let modal = document.getElementById('dashboard-report-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'dashboard-report-modal';
+            modal.style.cssText = 'position:fixed;z-index:2000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div style="background:#fff;padding:2rem;border-radius:12px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;position:relative;">
+                <span style="position:absolute;top:10px;right:18px;font-size:2rem;cursor:pointer;color:#aaa;font-weight:bold;" onclick="document.getElementById('dashboard-report-modal').remove()">&times;</span>
+                <h2>${report.itemName}</h2>
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    <strong>Type:</strong> <span style="text-transform: uppercase; color: ${report.type === 'lost' ? '#e05252' : '#2e7d32'};">${report.type}</span>
+                </p>
+                ${report.photo ? `<img src="${report.photo}" style="max-width:100%;max-height:250px;border-radius:10px;margin-bottom:1rem;">` : ''}
+                <div style="margin-bottom:1rem;"><strong>Category:</strong> ${report.category}</div>
+                <div style="margin-bottom:1rem;"><strong>Location:</strong> ${report.location}</div>
+                <div style="margin-bottom:1rem;"><strong>Date Reported:</strong> ${new Date(report.date).toLocaleString()}</div>
+                <div style="margin-bottom:1rem;"><strong>Description:</strong> ${report.description}</div>
+                <div style="margin-bottom:1rem;"><strong>Status:</strong> ${report.claimed ? 'Claimed' : 'Pending'}</div>
+            </div>
+        `;
     }
 }
 
@@ -194,12 +231,6 @@ function showReportForm(type) {
     
     document.getElementById('report-form').addEventListener('submit', function(e) {
         e.preventDefault();
-        const loggedInEmail = localStorage.getItem('siit_logged_in');
-        if (!loggedInEmail) {
-            alert('Please log in to submit a report.');
-            return;
-        }
-        
         const report = {
             type: type,
             itemName: document.getElementById('item-name').value,
@@ -228,5 +259,175 @@ function showReportForm(type) {
     
     modal.addEventListener('click', function(e) {
         if (e.target === modal) modal.remove();
+    });
+}
+
+// Report page logic for report.html
+if (window.location.pathname.endsWith('report.html')) {
+    // Block access if not logged in
+    if (!loggedInEmail) {
+        alert('You must log in first!');
+        window.location.replace('index.html');
+        throw new Error('Not logged in');
+    }
+    // Set user name and avatar
+    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
+    const user = users.find(u => u.email === loggedInEmail);
+    window.addEventListener('DOMContentLoaded', function() {
+        if (user) {
+            const userNameElem = document.querySelector('.user-name');
+            const userAvatarElem = document.querySelector('.user-avatar');
+            if (userNameElem) userNameElem.textContent = user.firstName + ' ' + user.lastName;
+            if (userAvatarElem) userAvatarElem.textContent = (user.firstName[0] + (user.lastName[0] || '')).toUpperCase();
+        }
+        // User dropdown
+        const navUser = document.querySelector('.nav-user');
+        if (navUser) {
+            navUser.addEventListener('click', () => {
+                navUser.classList.toggle('open');
+            });
+            document.addEventListener('click', (e) => {
+                if (!navUser.contains(e.target)) navUser.classList.remove('open');
+            });
+        }
+        // Logout logic
+        const logoutBtn = document.querySelector('.logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('siit_logged_in');
+                window.location.href = 'index.html';
+            });
+        }
+        // Report form submission
+        const reportForm = document.getElementById('reportForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const itemType = document.getElementById('itemType').value;
+                const itemCategory = document.getElementById('itemCategory').value;
+                const itemName = document.getElementById('itemName').value.trim();
+                const itemColor = document.getElementById('itemColor').value.trim();
+                const itemLocation = document.getElementById('itemLocation').value.trim();
+                const itemDetails = document.getElementById('itemDetails').value.trim();
+                const itemPhoto = document.getElementById('itemPhoto').files[0];
+                
+                if (!itemName || !itemColor || !itemLocation) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                let photoData = null;
+                if (itemPhoto) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoData = e.target.result;
+                        saveReport(itemType, itemCategory, itemName, itemColor, itemLocation, itemDetails, photoData);
+                    };
+                    reader.readAsDataURL(itemPhoto);
+                } else {
+                    saveReport(itemType, itemCategory, itemName, itemColor, itemLocation, itemDetails, null);
+                }
+            });
+        }
+        function saveReport(type, category, itemName, itemColor, location, details, photo) {
+            const report = {
+                type: type,
+                category: category,
+                itemName: itemName,
+                description: itemColor + (details ? ' - ' + details : ''),
+                location: location,
+                photo: photo,
+                date: new Date().toISOString(),
+                claimed: false
+            };
+            
+            // Save to user's own reports
+            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+            userReports.push(report);
+            localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
+            
+            // Save to global reports for browse page
+            let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+            report.userName = user ? user.firstName + ' ' + user.lastName : '';
+            report.userEmail = loggedInEmail;
+            allReports.push(report);
+            localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
+            
+            alert('Report submitted successfully!');
+            document.getElementById('reportForm').reset();
+            document.getElementById('fileName').textContent = '';
+            displayUserReports();
+        }
+        // Display user's own reports in the right box (Available Reports) with filter buttons
+        let currentFilter = 'all';
+        function displayUserReports() {
+            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+            const browseList = document.getElementById('browseList');
+            const browseEmpty = document.getElementById('browseEmpty');
+            let filtered = userReports;
+            if (currentFilter === 'lost') filtered = userReports.filter(r => r.type === 'lost');
+            if (currentFilter === 'found') filtered = userReports.filter(r => r.type === 'found');
+            filtered = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+            if (!filtered.length) {
+                browseList.innerHTML = '';
+                browseEmpty.style.display = '';
+                return;
+            }
+            browseEmpty.style.display = 'none';
+            browseList.innerHTML = filtered.map((report, idx) => `
+                <div class="report-card">
+                    <button onclick="deleteReport(${idx})" style="background:#e05252;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-weight:600;cursor:pointer;float:left;margin-right:1rem;">Delete</button>
+                    ${report.photo ? `<img src="${report.photo}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;">` : ''}
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:1.1rem;">${report.itemName}</div>
+                        <div style="color:#4a6352;font-size:0.95rem;">${report.category} | ${report.type} | ${new Date(report.date).toLocaleDateString()}</div>
+                        <div style="color:#888;font-size:0.9rem;">${report.description}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        // Add filter button listeners
+        window.setReportFilter = function(type) {
+            currentFilter = type;
+            displayUserReports();
+        }
+        displayUserReports();
+        window.deleteReport = function(idx) {
+            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
+            if (!confirm('Are you sure you want to delete this report?')) return;
+            // Remove from user's own reports
+            const deleted = userReports.splice(idx, 1)[0];
+            localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
+            // Remove from global reports (browse)
+            let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+            allReports = allReports.filter(r => !(r.userEmail === loggedInEmail && r.date === deleted.date && r.itemName === deleted.itemName));
+            localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
+            // Remove from dashboard activity log (claimed by user)
+            let claimedByUser = JSON.parse(localStorage.getItem('siit_claimed_by_user')) || [];
+            claimedByUser = claimedByUser.filter(r => !(r.userEmail === loggedInEmail && r.date === deleted.date && r.itemName === deleted.itemName));
+            localStorage.setItem('siit_claimed_by_user', JSON.stringify(claimedByUser));
+            displayUserReports();
+        }
+        // File upload handler
+        const itemPhoto = document.getElementById('itemPhoto');
+        if (itemPhoto) {
+            itemPhoto.addEventListener('change', function() {
+                const fileName = document.getElementById('fileName');
+                if (this.files.length > 0) {
+                    fileName.textContent = this.files[0].name;
+                } else {
+                    fileName.textContent = '';
+                }
+            });
+        }
+        // Clear form button
+        const clearFormBtn = document.getElementById('clearFormBtn');
+        if (clearFormBtn) {
+            clearFormBtn.addEventListener('click', function() {
+                document.getElementById('reportForm').reset();
+                document.getElementById('fileName').textContent = '';
+            });
+        }
     });
 }

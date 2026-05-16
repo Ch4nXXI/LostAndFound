@@ -7,78 +7,9 @@
   <link rel="stylesheet" href="report.css" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="images/1logo.png" type="image/png">
 </head>
 <body>
-<script>
-// Block access if not logged in
-var loggedInEmail = localStorage.getItem('siit_logged_in');
-if (!loggedInEmail) {
-  alert('You must log in first!');
-  window.location.replace('index.html');
-  throw new Error('Not logged in');
-}
-// Set user name and avatar
-const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-const user = users.find(u => u.email === loggedInEmail);
-window.addEventListener('DOMContentLoaded', function() {
-  if (user) {
-    const userNameElem = document.querySelector('.user-name');
-    const userAvatarElem = document.querySelector('.user-avatar');
-    if (userNameElem) userNameElem.textContent = user.firstName + ' ' + user.lastName;
-    if (userAvatarElem) userAvatarElem.textContent = (user.firstName[0] + (user.lastName[0] || '')).toUpperCase();
-  }
-  // User dropdown
-  const navUser = document.querySelector('.nav-user');
-  if (navUser) {
-    navUser.addEventListener('click', () => {
-      navUser.classList.toggle('open');
-    });
-    document.addEventListener('click', (e) => {
-      if (!navUser.contains(e.target)) navUser.classList.remove('open');
-    });
-  }
-  // Logout logic
-  const logoutBtn = document.querySelector('.logout');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      localStorage.removeItem('siit_logged_in');
-      window.location.href = 'index.html';
-    });
-  }
-  // Display user's own reports with delete option
-  const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-  const reportsList = document.getElementById('user-reports-list');
-  function renderUserReports() {
-    if (!userReports.length) {
-      reportsList.innerHTML = '<p style="color:#888;">No reports yet.</p>';
-      return;
-    }
-    reportsList.innerHTML = userReports.map((report, idx) => `
-      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;background:#fff;padding:1rem 1.5rem;border-radius:12px;box-shadow:0 2px 8px rgba(30,77,43,.08);">
-        <button onclick="deleteReport(${idx})" style="background:#e05252;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-weight:600;cursor:pointer;">Delete</button>
-        <div style="flex:1;">
-          <div style="font-weight:700;font-size:1.1rem;">${report.itemName}</div>
-          <div style="color:#4a6352;font-size:0.95rem;">${report.category} | ${report.type} | ${new Date(report.date).toLocaleDateString()}</div>
-          <div style="color:#888;font-size:0.9rem;">${report.description}</div>
-        </div>
-      </div>
-    `).join('');
-  }
-  renderUserReports();
-  window.deleteReport = function(idx) {
-    if (!confirm('Are you sure you want to delete this report?')) return;
-    // Remove from user's own reports
-    userReports.splice(idx, 1);
-    localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
-    // Remove from global reports
-    let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
-    allReports = allReports.filter(r => !(r.userEmail === loggedInEmail && r.date === userReports[idx]?.date && r.itemName === userReports[idx]?.itemName));
-    localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-    renderUserReports();
-  }
-});
-</script>
   <nav class="navbar">
     <div class="nav-brand">
       <div class="nav-logo">
@@ -87,11 +18,10 @@ window.addEventListener('DOMContentLoaded', function() {
       <span class="brand-name">SIIT Lost<span class="amp">&</span>Found</span>
     </div>
     <ul class="nav-links">
-      <li><a href="index.html" class="nav-link">Home</a></li>
-      <li><a href="how-it-works.html" class="nav-link">How it Works</a></li>
-      <li><a href="recent-reports.html" class="nav-link">Recent Reports</a></li>
-      <li><a href="browse.html" class="nav-link">Browse</a></li>
+      <li><a href="dashboard.html" class="nav-link">Home</a></li>
       <li><a href="report.html" class="nav-link active">Report</a></li>
+      <li><a href="browse.html" class="nav-link">Browse</a></li>
+       <li><a href="#" class="nav-link">About</a></li>
     </ul>
     <div class="nav-user">
       <div class="user-avatar">U</div>
@@ -193,9 +123,9 @@ window.addEventListener('DOMContentLoaded', function() {
             <h2>Available Reports</h2>
           </div>
           <div class="filter-buttons">
-            <button class="filter-btn active" data-filter="all">All</button>
-            <button class="filter-btn" data-filter="lost">Lost</button>
-            <button class="filter-btn" data-filter="found">Found</button>
+            <button class="filter-btn active" onclick="setReportFilter('all')">All</button>
+            <button class="filter-btn" onclick="setReportFilter('lost')">Lost</button>
+            <button class="filter-btn" onclick="setReportFilter('found')">Found</button>
           </div>
         </div>
 
@@ -210,6 +140,6 @@ window.addEventListener('DOMContentLoaded', function() {
     <div id="user-reports-list"></div>
   </main>
 
-  <script src="report.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

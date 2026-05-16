@@ -121,7 +121,18 @@ function displayReports(reports) {
         return;
     }
     const loggedInEmail = localStorage.getItem('siit_logged_in');
-    reportsGrid.innerHTML = reports.map((report, idx) => `
+    // Only show unclaimed reports in the main grid
+    const unclaimedReports = reports.filter(r => !r.claimed);
+    if (unclaimedReports.length === 0) {
+        reportsGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No unclaimed reports found matching your filters.</p>
+            </div>
+        `;
+        return;
+    }
+    reportsGrid.innerHTML = unclaimedReports.map((report, idx) => `
         <div class="report-card">
             <div class="report-header">
                 <div class="report-icon ${report.type}">
@@ -149,9 +160,35 @@ function displayReports(reports) {
             <p class="report-date">Reported: ${new Date(report.date).toLocaleDateString()}</p>
             <button class="btn-view" onclick="showModal(${allReports.indexOf(report)})">View Details</button>
             ${report.userEmail === loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="markAsClaimed(${allReports.indexOf(report)})">Mark as Claimed</button>` : ''}
-            ${report.claimed ? `<div class="claimed-label">Claimed</div>` : ''}
+            ${report.userEmail !== loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="claimItem(${allReports.indexOf(report)})">Claim</button>` : ''}
         </div>
     `).join('');
+}
+
+// Claim item (for non-owners)
+window.claimItem = function(index) {
+    let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+    const loggedInEmail = localStorage.getItem('siit_logged_in');
+    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
+    const user = users.find(u => u.email === loggedInEmail);
+    if (!user) return;
+    allReports[index].claimed = true;
+    allReports[index].claimerName = user.firstName + ' ' + user.lastName;
+    allReports[index].claimerEmail = loggedInEmail;
+    localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
+    // Also update owner's own reports
+    const ownerEmail = allReports[index].userEmail;
+    let userReports = JSON.parse(localStorage.getItem(`reports_${ownerEmail}`)) || [];
+    const userIdx = userReports.findIndex(r => r.date === allReports[index].date && r.itemName === allReports[index].itemName);
+    if (userIdx !== -1) {
+        userReports[userIdx].claimed = true;
+        userReports[userIdx].claimerName = user.firstName + ' ' + user.lastName;
+        userReports[userIdx].claimerEmail = loggedInEmail;
+        localStorage.setItem(`reports_${ownerEmail}`, JSON.stringify(userReports));
+    }
+    loadReports();
+    applyFilters();
+    displayClaimedItems();
 }
 
 // Show modal with details
@@ -162,37 +199,33 @@ function showModal(index) {
         <p style="color: #666; margin-bottom: 1.5rem;">
             <strong>Type:</strong> <span style="text-transform: uppercase; color: ${report.type === 'lost' ? '#e05252' : '#2e7d32'};">${report.type}</span>
         </p>
-        
+        ${report.photo ? `<img src="${report.photo}" style="max-width:100%;max-height:250px;border-radius:10px;margin-bottom:1rem;">` : ''}
         <div class="modal-details">
             <div class="modal-detail-item">
                 <label>Category</label>
                 <p>${report.category}</p>
             </div>
-            
             <div class="modal-detail-item">
                 <label>Location</label>
                 <p>${report.location}</p>
             </div>
-            
             <div class="modal-detail-item">
                 <label>Date Reported</label>
                 <p>${new Date(report.date).toLocaleString()}</p>
             </div>
-            
             <div class="modal-detail-item">
                 <label>Description</label>
                 <p>${report.description}</p>
             </div>
-            
             <div class="modal-detail-item">
                 <label>Reported By</label>
                 <p>${report.userName}</p>
             </div>
-            
             <div class="modal-detail-item">
                 <label>Contact Email</label>
                 <p>${report.userEmail}</p>
             </div>
+            ${report.claimed ? `<div class="modal-detail-item"><label>Claimed By</label><p>${report.claimerName || ''} (${report.claimerEmail || ''})</p></div>` : ''}
         </div>
     `;
     modal.classList.add('show');
