@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CTU Lost & Found – Admin Dashboard</title>
+  <link rel="icon" href="images/1logo.png" type="image/png" />
+  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="admin-shell">
+    <header class="admin-header">
+      <div class="admin-brand">
+        <div class="admin-logo"><i class="fas fa-shield-halved"></i></div>
+        <div>
+          <p class="admin-label">CTU Lost & Found</p>
+          <h1>Admin Dashboard</h1>
+        </div>
+      </div>
+      <button class="admin-logout" id="admin-logout"><i class="fas fa-right-from-bracket"></i> Log Out</button>
+    </header>
+
+    <section class="admin-overview">
+      <div class="admin-card summary-card">
+        <div class="admin-card-title">Total Reports</div>
+        <div class="admin-card-number" id="totalReports">0</div>
+      </div>
+      <div class="admin-card summary-card">
+        <div class="admin-card-title">Pending Requests</div>
+        <div class="admin-card-number" id="pendingReports">0</div>
+      </div>
+      <div class="admin-card summary-card">
+        <div class="admin-card-title">Registered Users</div>
+        <div class="admin-card-number" id="totalUsers">0</div>
+      </div>
+    </section>
+
+    <section class="admin-widgets">
+      <div class="admin-widget widget-chart">
+        <div class="widget-head">
+          <h3>Reports by Type</h3>
+          <span class="widget-subtitle">Lost vs Found reports</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="reportsTypeChart"></canvas>
+        </div>
+      </div>
+      <div class="admin-widget widget-chart">
+        <div class="widget-head">
+          <h3>Recent Activity</h3>
+          <span class="widget-subtitle">Reports submitted in the past 7 days</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <main class="admin-main">
+      <section class="admin-panel admin-table-panel">
+        <div class="panel-head">
+          <div>
+            <h2>All Reports</h2>
+            <p class="panel-subtitle">Review and manage every reported item from the CTU community.</p>
+          </div>
+          <button class="admin-refresh" id="refreshReports"><i class="fas fa-arrows-rotate"></i> Refresh</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Reporter</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTableBody">
+              <tr><td colspan="5" class="empty-state">Loading report data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

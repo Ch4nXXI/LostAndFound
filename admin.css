@@ -1,0 +1,305 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 25%),
+    #020617;
+}
+
+.admin-shell {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #38bdf8, #22c55e);
+  color: #020617;
+  font-size: 1.3rem;
+}
+
+.admin-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #93c5fd;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.admin-logout {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  padding: 0.9rem 1.3rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.admin-widgets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.admin-widget {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 24px;
+  padding: 1.5rem;
+}
+
+.widget-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.widget-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.widget-subtitle {
+  color: #94a3b8;
+  font-size: 0.92rem;
+}
+
+.chart-container {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  max-height: 300px;
+}
+
+.admin-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 24px;
+  padding: 1.5rem 1.5rem 1.35rem;
+}
+
+.summary-card {
+  min-height: 140px;
+}
+
+.admin-card-title {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-card-number {
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.admin-main {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.admin-panel {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 28px;
+  padding: 1.75rem;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.panel-subtitle {
+  margin: 0.4rem 0 0;
+  color: #cbd5e1;
+  max-width: 500px;
+}
+
+.admin-refresh {
+  border: none;
+  background: linear-gradient(135deg, #38bdf8, #22c55e);
+  color: #020617;
+  padding: 0.9rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 1rem 0.9rem;
+}
+
+.admin-table thead th {
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+
+.admin-table tbody tr {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.admin-table tbody td {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.admin-action-group {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-pending {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f59e0b;
+}
+
+.status-open {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+}
+
+.status-claimed {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+
+.status-rejected {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+
+.admin-action {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.admin-note-panel h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.admin-note-panel p {
+  margin: 0 0 1rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+}
+
+.credentials-block {
+  display: grid;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 1rem 1rem;
+  border-radius: 18px;
+}
+
+.credentials-block span {
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 980px) {
+  .admin-main {
+    grid-template-columns: 1fr;
+  }
+  .admin-overview {
+    grid-template-columns: 1fr;
+  }
+}

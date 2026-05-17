@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadReports();
     setupEventListeners();
     displayReports(allReports);
+    displayPendingRequests();
     displayClaimedItems();
 });
 
@@ -82,11 +83,11 @@ function applyFilters() {
     // Filter by item type
     const itemType = itemTypeFilter.value;
     if (itemType === 'lost') {
-        filtered = filtered.filter(report => report.type === 'lost' && !report.claimed);
+        filtered = filtered.filter(report => report.type === 'lost');
     } else if (itemType === 'found') {
-        filtered = filtered.filter(report => report.type === 'found' && !report.claimed);
+        filtered = filtered.filter(report => report.type === 'found');
     } else if (itemType === 'claimed') {
-        filtered = filtered.filter(report => report.claimed);
+        filtered = filtered.filter(report => report.claimStatus === 'approved');
     }
     
     // Filter by date range
@@ -110,6 +111,8 @@ function applyFilters() {
     }
     
     displayReports(filtered);
+    displayPendingRequests();
+    displayClaimedItems();
 }
 
 // Display reports
@@ -124,23 +127,33 @@ function displayReports(reports) {
         return;
     }
     const loggedInEmail = localStorage.getItem('siit_logged_in');
-    // Only show unclaimed reports in the main grid unless filter is 'claimed'
+    const itemType = itemTypeFilter.value;
     let filteredReports = reports;
-    if (window.currentBrowseFilter === 'claimed') {
-        filteredReports = reports.filter(r => r.claimed);
-    } else {
-        filteredReports = reports.filter(r => !r.claimed);
+
+    if (itemType === 'lost') {
+        filteredReports = filteredReports.filter(report => report.type === 'lost');
+    } else if (itemType === 'found') {
+        filteredReports = filteredReports.filter(report => report.type === 'found');
+    } else if (itemType === 'claimed') {
+        filteredReports = filteredReports.filter(report => report.claimStatus === 'approved');
     }
+
     if (filteredReports.length === 0) {
         reportsGrid.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-inbox"></i>
-                <p>No ${window.currentBrowseFilter === 'claimed' ? 'claimed' : 'unclaimed'} reports found matching your filters.</p>
+                <p>No reports found matching your filters.</p>
             </div>
         `;
         return;
     }
-    reportsGrid.innerHTML = filteredReports.map((report, idx) => `
+    reportsGrid.innerHTML = filteredReports.map((report, idx) => {
+        const isOwner = report.userEmail === loggedInEmail;
+        const isRequested = report.claimStatus === 'requested';
+        const isRejected = report.claimStatus === 'rejected';
+        const isApproved = report.claimStatus === 'approved';
+        const requestLabel = isRequested ? 'Pending admin approval' : isRejected ? 'Claim rejected' : '';
+        return `
         <div class="report-card">
             <div class="report-header">
                 <div class="report-icon ${report.type}">
@@ -167,11 +180,13 @@ function displayReports(reports) {
             </div>
             <p class="report-date">Reported: ${new Date(report.date).toLocaleDateString()}</p>
             <button class="btn-view" onclick="showModal(${allReports.indexOf(report)})">View Details</button>
-            ${report.userEmail === loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="markAsClaimed(${allReports.indexOf(report)})">Mark as Claimed</button>` : ''}
-            ${report.userEmail !== loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="claimItem(${allReports.indexOf(report)})">Claim</button>` : ''}
-            ${report.claimed ? `<div class="claimed-label">Claimed${report.claimerName ? ` by ${report.claimerName}` : ''}</div>` : ''}
+            ${isOwner && !isApproved ? `<button class="btn-claim" onclick="markAsClaimed(${allReports.indexOf(report)})">Mark as Claimed</button>` : ''}
+            ${!isOwner && !isApproved && !isRequested ? `<button class="btn-claim" onclick="claimItem(${allReports.indexOf(report)})">Claim</button>` : ''}
+            ${requestLabel ? `<div class="pending-label">${requestLabel}</div>` : ''}
+            ${isApproved ? `<div class="claimed-label">Claimed${report.claimerName ? ` by ${report.claimerName}` : ''}</div>` : ''}
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Claim item (for non-owners)
@@ -181,28 +196,55 @@ window.claimItem = function(index) {
     const users = JSON.parse(localStorage.getItem('siit_users')) || [];
     const user = users.find(u => u.email === loggedInEmail);
     if (!user) return;
-    allReports[index].claimed = true;
-    allReports[index].claimerName = user.firstName + ' ' + user.lastName;
-    allReports[index].claimerEmail = loggedInEmail;
+
+    const report = allReports[index];
+    if (!report || report.claimStatus === 'approved') {
+        alert('This item has already been claimed.');
+        return;
+    }
+    if (report.claimStatus === 'requested') {
+        alert('A claim request is already pending approval for this item.');
+        return;
+    }
+
+    report.claimStatus = 'requested';
+    report.claimed = false;
+    report.claimerName = user.firstName + ' ' + user.lastName;
+    report.claimerEmail = loggedInEmail;
+    report.claimRequestedAt = new Date().toISOString();
+    report.claimResponse = null;
+
     localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-    // Also update owner's own reports
-    const ownerEmail = allReports[index].userEmail;
+
+    const ownerEmail = report.userEmail;
     let userReports = JSON.parse(localStorage.getItem(`reports_${ownerEmail}`)) || [];
-    const userIdx = userReports.findIndex(r => r.date === allReports[index].date && r.itemName === allReports[index].itemName);
+    const userIdx = userReports.findIndex(r => r.date === report.date && r.itemName === report.itemName);
     if (userIdx !== -1) {
-        userReports[userIdx].claimed = true;
-        userReports[userIdx].claimerName = user.firstName + ' ' + user.lastName;
+        userReports[userIdx].claimStatus = 'requested';
+        userReports[userIdx].claimed = false;
+        userReports[userIdx].claimerName = report.claimerName;
         userReports[userIdx].claimerEmail = loggedInEmail;
+        userReports[userIdx].claimRequestedAt = report.claimRequestedAt;
+        userReports[userIdx].claimResponse = null;
         localStorage.setItem(`reports_${ownerEmail}`, JSON.stringify(userReports));
     }
+
     loadReports();
     applyFilters();
+    displayPendingRequests();
     displayClaimedItems();
 }
 
 // Show modal with details
 function showModal(index) {
     const report = allReports[index];
+    const statusText = report.claimStatus === 'approved'
+        ? 'Claimed'
+        : report.claimStatus === 'requested'
+        ? 'Pending admin approval'
+        : report.claimStatus === 'rejected'
+        ? 'Claim rejected'
+        : 'Open';
     modalBody.innerHTML = `
         <h2>${report.itemName}</h2>
         <p style="color: #666; margin-bottom: 1.5rem;">
@@ -234,7 +276,12 @@ function showModal(index) {
                 <label>Contact Email</label>
                 <p>${report.userEmail}</p>
             </div>
-            ${report.claimed ? `<div class="modal-detail-item"><label>Claimed By</label><p>${report.claimerName || ''} (${report.claimerEmail || ''})</p></div>` : ''}
+            <div class="modal-detail-item">
+                <label>Status</label>
+                <p>${statusText}</p>
+            </div>
+            ${['requested','approved'].includes(report.claimStatus) ? `<div class="modal-detail-item"><label>Claimed By</label><p>${report.claimerName || ''} (${report.claimerEmail || ''})</p></div>` : ''}
+            ${report.claimStatus === 'rejected' ? `<div class="modal-detail-item"><label>Admin Response</label><p>${report.claimResponse || 'No response provided.'}</p></div>` : ''}
         </div>
     `;
     modal.classList.add('show');
@@ -250,6 +297,8 @@ function resetFilters() {
     itemTypeFilter.value = 'all';
     dateRangeFilter.value = 'all';
     displayReports(allReports);
+    displayPendingRequests();
+    displayClaimedItems();
 }
 
 // Mark as claimed
@@ -273,7 +322,7 @@ window.markAsClaimed = function(index) {
 function displayClaimedItems() {
     const claimedSection = document.getElementById('claimed-items-section');
     if (!claimedSection) return;
-    const claimed = allReports.filter(r => r.claimed);
+    const claimed = allReports.filter(r => r.claimStatus === 'approved');
     if (claimed.length === 0) {
         claimedSection.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No claimed items yet.</p></div>`;
         return;
@@ -305,6 +354,46 @@ function displayClaimedItems() {
             </div>
             <p class="report-date">Reported: ${new Date(report.date).toLocaleDateString()}</p>
             <div class="claimed-label">Claimed</div>
+        </div>
+    `).join('');
+}
+
+function displayPendingRequests() {
+    const pendingSection = document.getElementById('pending-requests-section');
+    if (!pendingSection) return;
+    const loggedInEmail = localStorage.getItem('siit_logged_in');
+    const pendingRequests = allReports.filter(r => ['requested','rejected'].includes(r.claimStatus) && r.claimerEmail === loggedInEmail);
+    if (pendingRequests.length === 0) {
+        pendingSection.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No claim requests yet.</p></div>`;
+        return;
+    }
+    pendingSection.innerHTML = pendingRequests.map(report => `
+        <div class="report-card">
+            <div class="report-header">
+                <div class="report-icon ${report.type}">
+                    <i class="fas ${report.type === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i>
+                </div>
+                <div class="report-info">
+                    <h3>${report.itemName}</h3>
+                    <span class="report-type ${report.type}">${report.type}</span>
+                </div>
+            </div>
+            <div class="report-details">
+                <div class="detail-item">
+                    <i class="fas fa-tag"></i>
+                    <span>${report.category}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>${report.location}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fas fa-user"></i>
+                    <span>${report.userName}</span>
+                </div>
+            </div>
+            <p class="report-date">Reported: ${new Date(report.date).toLocaleDateString()}</p>
+            <div class="pending-label">${report.claimStatus === 'requested' ? 'Pending admin approval' : 'Claim rejected'}</div>
         </div>
     `).join('');
 }

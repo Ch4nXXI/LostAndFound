@@ -1,7 +1,14 @@
 // main.js
 
+// Admin credentials for separate admin dashboard access
+const ADMIN_CREDENTIALS = {
+    email: 'admin@ctu.edu',
+    password: 'admin123'
+};
+
 // Declare loggedInEmail once for all page logic
 const loggedInEmail = localStorage.getItem('siit_logged_in');
+const adminLoggedIn = localStorage.getItem('siit_admin_logged_in');
 
 // Registration logic for SignUp.html
 if (document.querySelector('.register-btn')) {
@@ -43,6 +50,12 @@ if (document.getElementById('login-btn')) {
         e.preventDefault();
         const email = document.getElementById('login-email').value.trim();
         const password = document.getElementById('login-password').value;
+        if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+            localStorage.setItem('siit_admin_logged_in', 'admin');
+            localStorage.removeItem('siit_logged_in');
+            window.location.href = 'admin.html';
+            return;
+        }
         const users = JSON.parse(localStorage.getItem('siit_users')) || [];
         const user = users.find(u => u.email === email && u.password === password);
         if (!user) {
@@ -50,14 +63,15 @@ if (document.getElementById('login-btn')) {
             return;
         }
         localStorage.setItem('siit_logged_in', email);
+        localStorage.removeItem('siit_admin_logged_in');
         window.location.href = 'dashboard.html';
     });
 }
 
 // Dashboard logic for dashboard.html
-if (window.location.pathname.endsWith('dashboard.html')) {
-    // Redirect to login if not logged in
-    if (!loggedInEmail) {
+if (window.location.href.includes('dashboard.html')) {
+    // Redirect to login if not logged in or if admin is logged in
+    if (!loggedInEmail || adminLoggedIn) {
         window.location.href = 'index.html';
     }
     // Set user name in dashboard
@@ -345,7 +359,10 @@ if (window.location.pathname.endsWith('report.html')) {
                 location: location,
                 photo: photo,
                 date: new Date().toISOString(),
-                claimed: false
+                claimed: false,
+                claimStatus: 'open',
+                claimRequestedAt: null,
+                claimResponse: null
             };
             
             // Save to user's own reports

@@ -466,6 +466,22 @@ body {
 .btn-claim:hover {
   background: #e05252;
 }
+.pending-label,
+.rejected-label {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+}
+.pending-label {
+  background: #f59e0b;
+}
+.rejected-label {
+  background: #ef4444;
+}
 .claimed-label {
   display: inline-block;
   background: #4caf72;
