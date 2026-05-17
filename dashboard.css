@@ -363,12 +363,12 @@ body {
   flex-direction: column;
   gap: 1.2rem;
   width: 100%;
-  max-width: 350px;
-  margin-left: auto;
+  max-width: 100%;
+  margin-left: 0;
 }
 
 .tip-panel {
-  min-height: 200px;
+  min-height: 250px;
   margin-top: 0;
 }
 
@@ -549,7 +549,7 @@ body {
   gap: .9rem;
   align-items: flex-start;
   flex: 1 1 auto;
-  min-height: 200px;
+  min-height: 250px;
   height: 100%;
 }
 
@@ -636,27 +636,18 @@ body {
 
 @media (min-width: 1100px) {
   .main {
-    flex-direction: row;
-    display: flex;
-    gap: 2rem;
-  }
-  .main > .left-content {
-    flex: 2 1 0;
-    display: flex;
     flex-direction: column;
-    gap: 1.2rem;
   }
   .main > .right-column {
-    flex: 1 1 0;
-    max-width: 350px;
-    margin-left: 0;
+    max-width: 100%;
+    width: 100%;
   }
   .activity-panel, .claims-panel {
     width: 100%;
   }
   .tip-panel {
-    min-height: 200px;
-    margin-top: 1.2rem;
+    min-height: 160px;
+    margin-top: 0;
     position: static;
     top: auto;
   }
