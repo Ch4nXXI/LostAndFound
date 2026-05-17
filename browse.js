@@ -79,11 +79,14 @@ function setupEventListeners() {
 // Apply filters
 function applyFilters() {
     let filtered = [...allReports];
-    
     // Filter by item type
     const itemType = itemTypeFilter.value;
-    if (itemType !== 'all') {
-        filtered = filtered.filter(report => report.type === itemType);
+    if (itemType === 'lost') {
+        filtered = filtered.filter(report => report.type === 'lost' && !report.claimed);
+    } else if (itemType === 'found') {
+        filtered = filtered.filter(report => report.type === 'found' && !report.claimed);
+    } else if (itemType === 'claimed') {
+        filtered = filtered.filter(report => report.claimed);
     }
     
     // Filter by date range
@@ -121,18 +124,23 @@ function displayReports(reports) {
         return;
     }
     const loggedInEmail = localStorage.getItem('siit_logged_in');
-    // Only show unclaimed reports in the main grid
-    const unclaimedReports = reports.filter(r => !r.claimed);
-    if (unclaimedReports.length === 0) {
+    // Only show unclaimed reports in the main grid unless filter is 'claimed'
+    let filteredReports = reports;
+    if (window.currentBrowseFilter === 'claimed') {
+        filteredReports = reports.filter(r => r.claimed);
+    } else {
+        filteredReports = reports.filter(r => !r.claimed);
+    }
+    if (filteredReports.length === 0) {
         reportsGrid.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-inbox"></i>
-                <p>No unclaimed reports found matching your filters.</p>
+                <p>No ${window.currentBrowseFilter === 'claimed' ? 'claimed' : 'unclaimed'} reports found matching your filters.</p>
             </div>
         `;
         return;
     }
-    reportsGrid.innerHTML = unclaimedReports.map((report, idx) => `
+    reportsGrid.innerHTML = filteredReports.map((report, idx) => `
         <div class="report-card">
             <div class="report-header">
                 <div class="report-icon ${report.type}">
@@ -161,6 +169,7 @@ function displayReports(reports) {
             <button class="btn-view" onclick="showModal(${allReports.indexOf(report)})">View Details</button>
             ${report.userEmail === loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="markAsClaimed(${allReports.indexOf(report)})">Mark as Claimed</button>` : ''}
             ${report.userEmail !== loggedInEmail && !report.claimed ? `<button class="btn-claim" onclick="claimItem(${allReports.indexOf(report)})">Claim</button>` : ''}
+            ${report.claimed ? `<div class="claimed-label">Claimed${report.claimerName ? ` by ${report.claimerName}` : ''}</div>` : ''}
         </div>
     `).join('');
 }
@@ -299,3 +308,10 @@ function displayClaimedItems() {
         </div>
     `).join('');
 }
+
+// Add filter for claimed items
+window.setBrowseFilter = function(type) {
+    window.currentBrowseFilter = type;
+    applyFilters();
+}
+window.currentBrowseFilter = 'all';

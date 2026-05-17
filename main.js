@@ -133,11 +133,16 @@ if (window.location.pathname.endsWith('dashboard.html')) {
     document.querySelector('.stat-card.claimed .stat-number').textContent = claimedCount;
     // Example: update activity log table
     const activityTableBody = document.querySelector('.activity-table tbody');
+    // Combine user's own reports and reports they have claimed
+    let claimedByUser = allReports.filter(r => r.claimerEmail === loggedInEmail);
+    let combinedReports = [...userReports, ...claimedByUser.filter(r => !userReports.some(ur => ur.date === r.date && ur.itemName === r.itemName))];
+    // Sort newest to oldest
+    combinedReports = combinedReports.sort((a, b) => new Date(b.date) - new Date(a.date));
     if (activityTableBody) {
-        if (userReports.length === 0) {
-            activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting an item!</p></div></td></tr>`;
+        if (combinedReports.length === 0) {
+            activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting or claiming an item!</p></div></td></tr>`;
         } else {
-            activityTableBody.innerHTML = userReports.map((report, idx) => `
+            activityTableBody.innerHTML = combinedReports.map((report, idx) => `
                 <tr>
                   <td class="item-cell">
                     <div class="item-thumb">
@@ -157,7 +162,7 @@ if (window.location.pathname.endsWith('dashboard.html')) {
     }
     // View details modal for activity log
     window.showDashboardReportDetails = function(idx) {
-        const report = userReports[idx];
+        const report = combinedReports[idx];
         let modal = document.getElementById('dashboard-report-modal');
         if (!modal) {
             modal = document.createElement('div');
@@ -178,6 +183,7 @@ if (window.location.pathname.endsWith('dashboard.html')) {
                 <div style="margin-bottom:1rem;"><strong>Date Reported:</strong> ${new Date(report.date).toLocaleString()}</div>
                 <div style="margin-bottom:1rem;"><strong>Description:</strong> ${report.description}</div>
                 <div style="margin-bottom:1rem;"><strong>Status:</strong> ${report.claimed ? 'Claimed' : 'Pending'}</div>
+                ${report.claimed && report.claimerName ? `<div style='margin-bottom:1rem;'><strong>Claimed By:</strong> ${report.claimerName} (${report.claimerEmail})</div>` : ''}
             </div>
         `;
     }
@@ -403,10 +409,6 @@ if (window.location.pathname.endsWith('report.html')) {
             let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
             allReports = allReports.filter(r => !(r.userEmail === loggedInEmail && r.date === deleted.date && r.itemName === deleted.itemName));
             localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-            // Remove from dashboard activity log (claimed by user)
-            let claimedByUser = JSON.parse(localStorage.getItem('siit_claimed_by_user')) || [];
-            claimedByUser = claimedByUser.filter(r => !(r.userEmail === loggedInEmail && r.date === deleted.date && r.itemName === deleted.itemName));
-            localStorage.setItem('siit_claimed_by_user', JSON.stringify(claimedByUser));
             displayUserReports();
         }
         // File upload handler

@@ -279,6 +279,7 @@ body {
   grid-template-columns: repeat(3, 1fr);
   gap: 1.2rem;
   animation: fadeUp .5s ease .1s both;
+  margin-bottom: 1.2rem;
 }
 
 .stat-card {
@@ -291,6 +292,8 @@ body {
   box-shadow: var(--shadow-sm);
   border-left: 4px solid transparent;
   transition: transform .2s, box-shadow .2s;
+  min-width: 0;
+  min-height: 120px;
 }
 
 .stat-card:hover {
@@ -362,6 +365,11 @@ body {
   width: 100%;
   max-width: 350px;
   margin-left: auto;
+}
+
+.tip-panel {
+  min-height: 200px;
+  margin-top: 0;
 }
 
 /* ===========================
@@ -647,7 +655,9 @@ body {
     width: 100%;
   }
   .tip-panel {
-    min-height: 100%;
-    height: 100%;
+    min-height: 200px;
+    margin-top: 1.2rem;
+    position: static;
+    top: auto;
   }
 }
