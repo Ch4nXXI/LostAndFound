@@ -202,10 +202,14 @@ body {
   flex-wrap: wrap;
   gap: 1rem;
   animation: fadeDown .5s ease both;
+  margin-top: -0.5rem;
 }
 
 .welcome-sub {
-  font-size: .97rem;
+  font-size: 1.4rem;
+  font-weight: 10;
+  line-height: 1.7;
+  margin-bottom: 10px;
   color: var(--text-mid);
 }
 
@@ -355,7 +359,11 @@ body {
 
 .claims-panel {
   width: 100%;
-  margin-bottom: 1.2rem;
+  margin-top: 1.2rem;
+  margin-left: 0;
+  max-width: 100%;
+  align-self: stretch;
+  grid-column: 1 / -1;
 }
 
 .right-column {
@@ -612,6 +620,14 @@ body {
   .lower-grid {
     grid-template-columns: 1fr;
   }
+
+  .activity-quicktip-row {
+    flex-direction: column;
+  }
+  .tip-panel {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 @media (max-width: 680px) {
@@ -650,5 +666,46 @@ body {
     margin-top: 0;
     position: static;
     top: auto;
+  }
+}
+
+.activity-quicktip-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1.2rem;
+  width: 100%;
+  align-items: stretch;
+}
+.activity-panel {
+  flex: 2 1 0;
+  min-width: 0;
+  height: 100%;
+}
+.tip-panel {
+   flex: 1 1 0;
+  min-width: 0;
+  max-width: 365px;
+  height: 270px;         /*  let flexbox control height */
+  align-self: stretch;   /* stretch to match sibling height */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.claims-panel {
+  width: 100%;
+  margin-top: 1.2rem;
+  margin-left: 0;
+  max-width: none;
+  align-self: flex-start;
+}
+@media (max-width: 900px) {
+  .activity-quicktip-row {
+    flex-direction: column;
+  }
+  .tip-panel, .claims-panel {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    margin-left: 0;
   }
 }

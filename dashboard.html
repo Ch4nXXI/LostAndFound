@@ -26,8 +26,8 @@
       <li><a href="#" class="nav-link">About</a></li>
     </ul>
     <div class="nav-user">
-      <div class="user-avatar">NM</div>
-      <span class="user-name">Nico Mar Oposa</span>
+      <div class="user-avatar"></div>
+      <span class="user-name"></span>
       <i class="fas fa-chevron-down caret"></i>
       <div class="user-dropdown">
         <a href="#"><i class="fas fa-user"></i> Profile</a>
@@ -38,7 +38,7 @@
   </nav>
 
   <!-- MAIN CONTENT -->
-  <main class="main">
+  <main class="main dashboard-flex">
     <div class="left-content">
       <!-- WELCOME HEADER -->
       <section class="welcome-section">
@@ -73,25 +73,35 @@
         </div>
       </section>
 
-      <!-- ACTIVITY LOG -->
-      <div class="panel activity-panel">
-        <h2 class="panel-title">Your Activity Log</h2>
-        <table class="activity-table">
-          <thead>
-            <tr>
-              <th>Item Details</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- User's reports will be dynamically inserted here by main.js -->
-          </tbody>
-        </table>
-        <p class="empty-hint" style="display:none;">No activity yet. Start by reporting an item!</p>
-      </div>
+      <div class="activity-quicktip-row">
+        <!-- ACTIVITY LOG -->
+        <div class="panel activity-panel">
+          <h2 class="panel-title">Your Activity Log</h2>
+          <table class="activity-table">
+            <thead>
+              <tr>
+                <th>Item Details</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- User's reports will be dynamically inserted here by main.js -->
+            </tbody>
+          </table>
+          <p class="empty-hint" style="display:none;">No activity yet. Start by reporting an item!</p>
+        </div>
 
+        <!-- QUICK TIP -->
+        <div class="panel tip-panel">
+          <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
+          <div class="tip-content">
+            <h3 class="tip-title">Quick Tip</h3>
+            <p class="tip-text">Providing high-quality photos and specific locations significantly improves the chances of item recovery. Our admins typically process reports within 24 hours.</p>
+          </div>
+        </div>
+      </div>
       <!-- CLAIM REQUESTS -->
       <section class="panel claims-panel">
         <div class="claims-header">
@@ -121,14 +131,7 @@
       </section>
     </div>
     <div class="right-column">
-      <!-- QUICK TIP -->
-      <div class="panel tip-panel">
-        <div class="tip-icon"><i class="fas fa-lightbulb"></i></div>
-        <div class="tip-content">
-          <h3 class="tip-title">Quick Tip</h3>
-          <p class="tip-text">Providing high-quality photos and specific locations significantly improves the chances of item recovery. Our admins typically process reports within 24 hours.</p>
-        </div>
-      </div>
+      <!-- Additional content for the right column can go here -->
     </div>
   </main>
 
