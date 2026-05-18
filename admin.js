@@ -170,14 +170,15 @@ function renderReportsTable() {
           <div class="admin-action-group">
             <button class="admin-action approve-btn" data-index="${index}" data-action="approve">Approve</button>
             <button class="admin-action reject-btn" data-index="${index}" data-action="reject">Reject</button>
+            <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>
           </div>
         `;
       } else if (status === 'approved') {
-        actionButtons = `<button class="admin-action reject-btn" data-index="${index}" data-action="reject">Reject</button>`;
+        actionButtons = `<button class="admin-action reject-btn" data-index="${index}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
       } else if (status === 'rejected') {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Approve</button>`;
+        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
       } else {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Mark Claimed</button>`;
+        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
       }
 
       return `
@@ -218,6 +219,20 @@ function handleAdminAction(index, action) {
     report.claimStatus = 'rejected';
     report.claimed = false;
     report.claimResponse = 'Rejected by admin';
+  } else if (action === 'delete') {
+    // Remove from global reports
+    reports.splice(index, 1);
+    localStorage.setItem('siit_all_reports', JSON.stringify(reports));
+    // Remove from user's own reports
+    if (report.userEmail) {
+      let userReports = JSON.parse(localStorage.getItem(`reports_${report.userEmail}`)) || [];
+      userReports = userReports.filter(r => !(r.date === report.date && r.itemName === report.itemName));
+      localStorage.setItem(`reports_${report.userEmail}`, JSON.stringify(userReports));
+    }
+    renderStats();
+    renderReportsTable();
+    renderCharts();
+    return;
   }
 
   localStorage.setItem('siit_all_reports', JSON.stringify(reports));

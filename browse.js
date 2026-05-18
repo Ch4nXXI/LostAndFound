@@ -196,42 +196,25 @@ window.claimItem = function(index) {
     const users = JSON.parse(localStorage.getItem('siit_users')) || [];
     const user = users.find(u => u.email === loggedInEmail);
     if (!user) return;
-
-    const report = allReports[index];
-    if (!report || report.claimStatus === 'approved') {
-        alert('This item has already been claimed.');
-        return;
-    }
-    if (report.claimStatus === 'requested') {
-        alert('A claim request is already pending approval for this item.');
-        return;
-    }
-
-    report.claimStatus = 'requested';
-    report.claimed = false;
-    report.claimerName = user.firstName + ' ' + user.lastName;
-    report.claimerEmail = loggedInEmail;
-    report.claimRequestedAt = new Date().toISOString();
-    report.claimResponse = null;
-
+    // Set claim as pending
+    allReports[index].claimed = true;
+    allReports[index].claimerName = user.firstName + ' ' + user.lastName;
+    allReports[index].claimerEmail = loggedInEmail;
+    allReports[index].claimStatus = 'pending';
     localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-
-    const ownerEmail = report.userEmail;
+    // Also update owner's own reports
+    const ownerEmail = allReports[index].userEmail;
     let userReports = JSON.parse(localStorage.getItem(`reports_${ownerEmail}`)) || [];
-    const userIdx = userReports.findIndex(r => r.date === report.date && r.itemName === report.itemName);
+    const userIdx = userReports.findIndex(r => r.date === allReports[index].date && r.itemName === allReports[index].itemName);
     if (userIdx !== -1) {
-        userReports[userIdx].claimStatus = 'requested';
-        userReports[userIdx].claimed = false;
-        userReports[userIdx].claimerName = report.claimerName;
+        userReports[userIdx].claimed = true;
+        userReports[userIdx].claimerName = user.firstName + ' ' + user.lastName;
         userReports[userIdx].claimerEmail = loggedInEmail;
-        userReports[userIdx].claimRequestedAt = report.claimRequestedAt;
-        userReports[userIdx].claimResponse = null;
+        userReports[userIdx].claimStatus = 'pending';
         localStorage.setItem(`reports_${ownerEmail}`, JSON.stringify(userReports));
     }
-
     loadReports();
     applyFilters();
-    displayPendingRequests();
     displayClaimedItems();
 }
 

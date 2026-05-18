@@ -353,17 +353,19 @@ body {
 }
 
 .activity-panel {
+  flex: none;
   width: 100%;
-  margin-bottom: 1.2rem;
+  min-height: 275px;
 }
 
 .claims-panel {
   width: 100%;
   margin-top: 1.2rem;
   margin-left: 0;
-  max-width: 100%;
-  align-self: stretch;
-  grid-column: 1 / -1;
+  max-width: none;
+  align-self: flex-start;
+  /* Ensure box does not shrink or grow unexpectedly */
+  flex: none;
 }
 
 .right-column {
