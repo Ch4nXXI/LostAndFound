@@ -206,12 +206,34 @@
   </footer>
 
   <script>
+    // Set logged-in user name and avatar on About page
+    const loggedInEmail = localStorage.getItem('siit_logged_in');
+    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
+    const currentUser = users.find(u => u.email === loggedInEmail);
+    if (currentUser) {
+      const userNameElem = document.querySelector('.user-name');
+      const userAvatarElem = document.querySelector('.user-avatar');
+      if (userNameElem) userNameElem.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+      if (userAvatarElem) userAvatarElem.textContent = `${currentUser.firstName[0]}${currentUser.lastName[0] || ''}`.toUpperCase();
+    }
+
     // Navbar user dropdown toggle
     const navUser = document.querySelector('.nav-user');
     if (navUser) {
       navUser.addEventListener('click', () => navUser.classList.toggle('open'));
       document.addEventListener('click', e => {
         if (!navUser.contains(e.target)) navUser.classList.remove('open');
+      });
+    }
+
+    // Logout handling for About page
+    const logoutBtn = document.querySelector('.logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('siit_logged_in');
+        localStorage.removeItem('siit_admin_logged_in');
+        window.location.href = 'index.html';
       });
     }
 

@@ -8,27 +8,37 @@
 }
 
 :root {
-  --green-dark:   #1e4d2b;
-  --green-main:   #2e7d46;
-  --green-light:  #4caf72;
-  --green-pale:   #e8f5ec;
-  --cream:        #f5f3ec;
-  --cream-dark:   #ede9df;
-  --red-soft:     #fdecea;
-  --red-accent:   #e05252;
-  --gold:         #f5a623;
-  --gold-soft:    #fff8ec;
-  --text-dark:    #1a2b22;
-  --text-mid:     #4a6352;
-  --text-light:   #8aa898;
-  --white:        #ffffff;
-  --shadow-sm:    0 2px 8px rgba(30,77,43,.08);
-  --shadow-md:    0 6px 24px rgba(30,77,43,.12);
-  --radius-sm:    8px;
-  --radius-md:    14px;
-  --radius-lg:    20px;
-  --font-display: 'DM Serif Display', serif;
-  --font-body:    'DM Sans', sans-serif;
+  --ctu-primary:        #8B1A1A;
+  --ctu-primary-accent: #C0392B;
+  --ctu-secondary:      #D4A017;
+  --ctu-bright:         #F5C842;
+  --ctu-success:        #2E5E1E;
+  --ctu-info:           #1B3A6B;
+  --ctu-bg:             #F5F0E0;
+  --ctu-text:           #1A1A1A;
+  --ctu-surface:        #fff7e0;
+  --ctu-border:         rgba(139,26,26,.15);
+  --green-dark:         var(--ctu-primary);
+  --green-main:         var(--ctu-primary-accent);
+  --green-light:        var(--ctu-secondary);
+  --green-pale:         rgba(245,200,66,.15);
+  --cream:              var(--ctu-bg);
+  --cream-dark:         #ece1ce;
+  --red-soft:           rgba(192,57,43,.08);
+  --red-accent:         var(--ctu-primary-accent);
+  --gold:               var(--ctu-secondary);
+  --gold-soft:          rgba(245,200,66,.18);
+  --text-dark:          var(--ctu-text);
+  --text-mid:           #4a3a2a;
+  --text-light:         #7a6a4f;
+  --white:              #ffffff;
+  --shadow-sm:          0 2px 8px rgba(139,26,26,.08);
+  --shadow-md:          0 6px 24px rgba(139,26,26,.12);
+  --radius-sm:          8px;
+  --radius-md:          14px;
+  --radius-lg:          20px;
+  --font-display:       'DM Serif Display', serif;
+  --font-body:          'DM Sans', sans-serif;
 }
 
 body {
@@ -51,7 +61,7 @@ body {
   padding: 0 2.5rem;
   height: 66px;
   background: var(--white);
-  box-shadow: 0 2px 12px rgba(30,77,43,.09);
+  box-shadow: 0 2px 12px rgba(139,26,26,.12);
 }
 
 .nav-brand {

@@ -8,11 +8,16 @@ const totalReportsElem = document.getElementById('totalReports');
 const pendingReportsElem = document.getElementById('pendingReports');
 const totalUsersElem = document.getElementById('totalUsers');
 const reportsTableBody = document.getElementById('reportsTableBody');
+const lostTableBody = document.getElementById('lostTableBody');
+const foundTableBody = document.getElementById('foundTableBody');
+const usersTableBody = document.getElementById('usersTableBody');
 const refreshBtn = document.getElementById('refreshReports');
 const logoutBtn = document.getElementById('admin-logout');
 const reportsTypeCanvas = document.getElementById('reportsTypeChart');
+const claimedCanvas = document.getElementById('claimedChart');
 const activityCanvas = document.getElementById('activityChart');
 let reportsTypeChart = null;
+let claimedChart = null;
 let activityChart = null;
 
 function getAllReports() {
@@ -21,6 +26,28 @@ function getAllReports() {
 
 function getUsers() {
   return JSON.parse(localStorage.getItem('siit_users')) || [];
+}
+
+function saveAllReports(reports) {
+  localStorage.setItem('siit_all_reports', JSON.stringify(reports));
+}
+
+function saveUsers(users) {
+  localStorage.setItem('siit_users', JSON.stringify(users));
+}
+
+function normalizeReports() {
+  const reports = getAllReports();
+  let changed = false;
+  reports.forEach(report => {
+    if (!report.id) {
+      report.id = `${report.userEmail || 'unknown'}|${report.date || Date.now()}|${report.itemName || 'item'}`;
+      changed = true;
+    }
+  });
+  if (changed) {
+    saveAllReports(reports);
+  }
 }
 
 function renderStats() {
@@ -39,6 +66,11 @@ function getReportsByType() {
     lost: reports.filter(report => report.type === 'lost').length,
     found: reports.filter(report => report.type === 'found').length,
   };
+}
+
+function getClaimedCount() {
+  const reports = getAllReports();
+  return reports.filter(report => report.claimed === true || report.claimStatus === 'approved').length;
 }
 
 function getLast7Days() {
@@ -98,6 +130,45 @@ function renderCharts() {
     },
   });
 
+  const claimedCount = getClaimedCount();
+  if (claimedChart) {
+    claimedChart.destroy();
+  }
+  claimedChart = new Chart(claimedCanvas, {
+    type: 'bar',
+    data: {
+      labels: ['Lost Items', 'Found Items', 'Claimed Items'],
+      datasets: [{
+        label: 'Count',
+        data: [reportTypeData.lost, reportTypeData.found, claimedCount],
+        backgroundColor: ['#f97316', '#22c55e', '#3b82f6'],
+        borderRadius: 12,
+      }],
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => `${context.label}: ${context.formattedValue}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#cbd5e1' },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: '#cbd5e1', precision: 0 },
+          grid: { color: 'rgba(148, 163, 184, 0.12)' },
+        },
+      },
+      maintainAspectRatio: false,
+    },
+  });
+
   if (activityChart) {
     activityChart.destroy();
   }
@@ -148,18 +219,18 @@ function renderReportsTable() {
   reportsTableBody.innerHTML = reports
     .map((report, index) => {
       const reporter = report.userName || report.userEmail || 'Unknown';
-      const status = report.claimStatus || 'open';
+      const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
       const statusLabels = {
         open: 'Open',
         requested: 'Pending Approval',
         approved: 'Claimed',
-        rejected: 'Rejected'
+        rejected: 'Rejected',
       };
       const statusClasses = {
         open: 'status-open',
         requested: 'status-pending',
         approved: 'status-claimed',
-        rejected: 'status-rejected'
+        rejected: 'status-rejected',
       };
       const statusText = statusLabels[status] || 'Open';
       const statusClass = statusClasses[status] || 'status-open';
@@ -196,7 +267,112 @@ function renderReportsTable() {
     })
     .join('');
 
-  const actionButtons = document.querySelectorAll('.admin-action');
+  attachReportActions(reportsTableBody);
+}
+
+function renderSubReportTable(type, tableBody, emptyMessage) {
+  const reports = getAllReports().filter(report => report.type === type);
+  if (!reports.length) {
+    tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">${emptyMessage}</td></tr>`;
+    return;
+  }
+
+  const allReports = getAllReports();
+  tableBody.innerHTML = reports
+    .map(report => {
+      const globalIndex = allReports.findIndex(
+        r => r.date === report.date && r.itemName === report.itemName && r.userEmail === report.userEmail
+      );
+      const reporter = report.userName || report.userEmail || 'Unknown';
+      const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
+      const statusLabels = {
+        open: 'Open',
+        requested: 'Pending Approval',
+        approved: 'Claimed',
+        rejected: 'Rejected',
+      };
+      const statusClasses = {
+        open: 'status-open',
+        requested: 'status-pending',
+        approved: 'status-claimed',
+        rejected: 'status-rejected',
+      };
+      const statusText = statusLabels[status] || 'Open';
+      const statusClass = statusClasses[status] || 'status-open';
+      const claimedText = report.claimed ? 'Yes' : 'No';
+      let actionButtons = '';
+
+      if (status === 'requested') {
+        actionButtons = `
+          <div class="admin-action-group">
+            <button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Approve</button>
+            <button class="admin-action reject-btn" data-index="${globalIndex}" data-action="reject">Reject</button>
+            <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>
+          </div>
+        `;
+      } else if (status === 'approved') {
+        actionButtons = `<button class="admin-action reject-btn" data-index="${globalIndex}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
+      } else if (status === 'rejected') {
+        actionButtons = `<button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
+      } else {
+        actionButtons = `<button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
+      }
+
+      return `
+        <tr>
+          <td>
+            <strong>${report.itemName || 'Unnamed item'}</strong><br />
+            <span>${report.category || 'No category'}</span>
+          </td>
+          <td>${reporter}</td>
+          <td><span class="status-tag ${statusClass}">${statusText}</span></td>
+          <td>${claimedText}</td>
+          <td>${actionButtons}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  attachReportActions(tableBody);
+}
+
+function renderUsersTable() {
+  const users = getUsers();
+  const reports = getAllReports();
+  if (!users.length) {
+    usersTableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No registered users available.</td></tr>';
+    return;
+  }
+
+  usersTableBody.innerHTML = users
+    .map(user => {
+      const reportCount = reports.filter(report => report.userEmail === user.email).length;
+      return `
+        <tr>
+          <td>${user.firstName} ${user.lastName}</td>
+          <td>${user.email}</td>
+          <td>${user.phone || 'Not provided'}</td>
+          <td>${reportCount}</td>
+          <td><button class="admin-action delete-user-btn" data-email="${user.email}" data-action="delete">Delete</button></td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  const deleteButtons = usersTableBody.querySelectorAll('.delete-user-btn');
+  deleteButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const email = this.dataset.email;
+      if (!email) return;
+      if (confirm('Delete this user and all their reports?')) {
+        deleteUser(email);
+      }
+    });
+  });
+}
+
+function attachReportActions(bodyElement) {
+  const actionButtons = bodyElement.querySelectorAll('.admin-action');
   actionButtons.forEach(button => {
     button.addEventListener('click', function() {
       const index = Number(this.dataset.index);
@@ -220,51 +396,71 @@ function handleAdminAction(index, action) {
     report.claimed = false;
     report.claimResponse = 'Rejected by admin';
   } else if (action === 'delete') {
-    // Remove from global reports
     reports.splice(index, 1);
-    localStorage.setItem('siit_all_reports', JSON.stringify(reports));
-    // Remove from user's own reports
+    saveAllReports(reports);
     if (report.userEmail) {
       let userReports = JSON.parse(localStorage.getItem(`reports_${report.userEmail}`)) || [];
-      userReports = userReports.filter(r => !(r.date === report.date && r.itemName === report.itemName));
+      userReports = userReports.filter(r => !(r.date === report.date && r.itemName === report.itemName && r.category === report.category));
       localStorage.setItem(`reports_${report.userEmail}`, JSON.stringify(userReports));
     }
-    renderStats();
-    renderReportsTable();
-    renderCharts();
+    refreshDashboard();
     return;
   }
 
-  localStorage.setItem('siit_all_reports', JSON.stringify(reports));
-
-  const ownerEmail = report.userEmail;
-  let userReports = JSON.parse(localStorage.getItem(`reports_${ownerEmail}`)) || [];
-  const userIdx = userReports.findIndex(r => r.date === report.date && r.itemName === report.itemName);
-  if (userIdx !== -1) {
-    userReports[userIdx].claimStatus = report.claimStatus;
-    userReports[userIdx].claimed = report.claimed;
-    userReports[userIdx].claimResponse = report.claimResponse;
-    localStorage.setItem(`reports_${ownerEmail}`, JSON.stringify(userReports));
+  saveAllReports(reports);
+  if (report.userEmail) {
+    let userReports = JSON.parse(localStorage.getItem(`reports_${report.userEmail}`)) || [];
+    const userIdx = userReports.findIndex(r => r.date === report.date && r.itemName === report.itemName && r.category === report.category);
+    if (userIdx !== -1) {
+      userReports[userIdx].claimStatus = report.claimStatus;
+      userReports[userIdx].claimed = report.claimed;
+      userReports[userIdx].claimResponse = report.claimResponse;
+      localStorage.setItem(`reports_${report.userEmail}`, JSON.stringify(userReports));
+    }
   }
 
+  refreshDashboard();
+}
+
+function deleteUser(email) {
+  let users = getUsers();
+  users = users.filter(user => user.email !== email);
+  saveUsers(users);
+
+  let reports = getAllReports();
+  reports = reports.filter(report => report.userEmail !== email);
+  saveAllReports(reports);
+  localStorage.removeItem(`reports_${email}`);
+
+  refreshDashboard();
+}
+
+function refreshDashboard() {
   renderStats();
   renderReportsTable();
+  renderSubReportTable('lost', lostTableBody, 'No lost item reports yet.');
+  renderSubReportTable('found', foundTableBody, 'No found item reports yet.');
+  renderUsersTable();
   renderCharts();
 }
 
-function initAdminPage() {
-  renderStats();
-  renderReportsTable();
-  renderCharts();
+function switchTab(tabName) {
+  const tabs = document.querySelectorAll('.admin-tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === tabName));
+  panels.forEach(panel => panel.classList.toggle('hidden', panel.dataset.tab !== tabName));
 }
 
-refreshBtn.addEventListener('click', () => {
-  initAdminPage();
+const tabButtons = document.querySelectorAll('.admin-tab');
+tabButtons.forEach(button => {
+  button.addEventListener('click', () => switchTab(button.dataset.tab));
 });
 
+refreshBtn.addEventListener('click', refreshDashboard);
 logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('siit_admin_logged_in');
   window.location.href = 'index.html';
 });
 
-initAdminPage();
+normalizeReports();
+refreshDashboard();

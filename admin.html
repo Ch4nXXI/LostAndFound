@@ -49,6 +49,15 @@
       </div>
       <div class="admin-widget widget-chart">
         <div class="widget-head">
+          <h3>Item Status</h3>
+          <span class="widget-subtitle">Lost, found, and claimed item counts</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="claimedChart"></canvas>
+        </div>
+      </div>
+      <div class="admin-widget widget-chart">
+        <div class="widget-head">
           <h3>Recent Activity</h3>
           <span class="widget-subtitle">Reports submitted in the past 7 days</span>
         </div>
@@ -59,34 +68,99 @@
     </section>
 
     <main class="admin-main">
-      <section class="admin-panel admin-table-panel">
+      <section class="admin-panel admin-table-panel" id="adminManagementPanel">
         <div class="panel-head">
           <div>
-            <h2>All Reports</h2>
-            <p class="panel-subtitle">Review and manage every reported item from the CTU community.</p>
+            <h2>Admin Management</h2>
+            <p class="panel-subtitle">Manage registered users and review lost / found item reports from a single dashboard.</p>
           </div>
           <button class="admin-refresh" id="refreshReports"><i class="fas fa-arrows-rotate"></i> Refresh</button>
         </div>
 
-        <div class="table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Reporter</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="reportsTableBody">
-              <tr><td colspan="5" class="empty-state">Loading report data...</td></tr>
-            </tbody>
-          </table>
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="allReports">All Reports</button>
+          <button class="admin-tab" data-tab="lostItems">Lost Items</button>
+          <button class="admin-tab" data-tab="foundItems">Found Items</button>
+          <button class="admin-tab" data-tab="userManagement">Users</button>
+        </div>
+
+        <div class="tab-panel" data-tab="allReports">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Reporter</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="reportsTableBody">
+                <tr><td colspan="5" class="empty-state">Loading report data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="lostItems">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Reporter</th>
+                  <th>Status</th>
+                  <th>Claimed</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="lostTableBody">
+                <tr><td colspan="5" class="empty-state">No lost item reports yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="foundItems">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Reporter</th>
+                  <th>Status</th>
+                  <th>Claimed</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="foundTableBody">
+                <tr><td colspan="5" class="empty-state">No found item reports yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="userManagement">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Reports</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="5" class="empty-state">No registered users available.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
-
-      
+    </main>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
