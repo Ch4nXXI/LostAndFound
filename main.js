@@ -201,6 +201,33 @@ if (window.location.href.includes('dashboard.html')) {
             </div>
         `;
     }
+    // Show claim requests in dashboard
+    const claimRequests = JSON.parse(localStorage.getItem(`claims_${loggedInEmail}`)) || [];
+    const claimTableBody = document.querySelector('.claims-panel tbody');
+    if (claimTableBody) {
+        if (claimRequests.length === 0) {
+            claimTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No claim requests yet.</p></div></td></tr>`;
+        } else {
+            claimTableBody.innerHTML = claimRequests.map((req, idx) => `
+                <tr>
+                  <td class="item-cell">
+                    <div class="item-thumb">
+                      <i class="fas ${req.type === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i>
+                    </div>
+                    <div class="item-meta">
+                      <span class="item-name">${req.itemName}</span>
+                      <span class="item-date">Reported: ${new Date(req.date).toLocaleDateString()}</span>
+                    </div>
+                  </td>
+                  <td><span class="badge-category">${req.category}</span></td>
+                  <td><span class="badge-status ${req.claimStatus === 'approved' ? 'resolved' : req.claimStatus === 'rejected' ? 'rejected' : 'pending'}">
+                    ${req.claimStatus === 'approved' ? 'Claimed' : req.claimStatus === 'rejected' ? 'Rejected' : 'Pending for approval'}
+                  </span></td>
+                  <td>${req.claimResponse ? req.claimResponse : ''}</td>
+                </tr>
+            `).join('');
+        }
+    }
 }
 
 // Show report form

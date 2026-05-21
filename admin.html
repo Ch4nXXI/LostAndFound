@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CTU Lost & Found – Admin Dashboard</title>
-  <link rel="icon" href="images/1logo.png" type="image/png" />
+  <link rel="icon" href="images/logo.png" type="image/png" />
   <link rel="stylesheet" href="admin.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -81,6 +81,7 @@
           <button class="admin-tab active" data-tab="allReports">All Reports</button>
           <button class="admin-tab" data-tab="lostItems">Lost Items</button>
           <button class="admin-tab" data-tab="foundItems">Found Items</button>
+          <button class="admin-tab" data-tab="claimRequests">Claim Requests</button>
           <button class="admin-tab" data-tab="userManagement">Users</button>
         </div>
 
@@ -136,6 +137,24 @@
               </thead>
               <tbody id="foundTableBody">
                 <tr><td colspan="5" class="empty-state">No found item reports yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel hidden" data-tab="claimRequests">
+          <div class="table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Claimer</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="claimRequestsTableBody">
+                <tr><td colspan="4" class="empty-state">No claim requests yet.</td></tr>
               </tbody>
             </table>
           </div>

@@ -196,23 +196,20 @@ window.claimItem = function(index) {
     const users = JSON.parse(localStorage.getItem('siit_users')) || [];
     const user = users.find(u => u.email === loggedInEmail);
     if (!user) return;
-    // Set claim as pending
-    allReports[index].claimed = true;
+    // Only add claim request, do not mark as claimed yet
+    allReports[index].claimStatus = 'pending';
     allReports[index].claimerName = user.firstName + ' ' + user.lastName;
     allReports[index].claimerEmail = loggedInEmail;
-    allReports[index].claimStatus = 'pending';
+    allReports[index].claimed = false;
     localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-    // Also update owner's own reports
-    const ownerEmail = allReports[index].userEmail;
-    let userReports = JSON.parse(localStorage.getItem(`reports_${ownerEmail}`)) || [];
-    const userIdx = userReports.findIndex(r => r.date === allReports[index].date && r.itemName === allReports[index].itemName);
-    if (userIdx !== -1) {
-        userReports[userIdx].claimed = true;
-        userReports[userIdx].claimerName = user.firstName + ' ' + user.lastName;
-        userReports[userIdx].claimerEmail = loggedInEmail;
-        userReports[userIdx].claimStatus = 'pending';
-        localStorage.setItem(`reports_${ownerEmail}`, JSON.stringify(userReports));
-    }
+    // Add to user's claim requests (dashboard)
+    let claimRequests = JSON.parse(localStorage.getItem(`claims_${loggedInEmail}`)) || [];
+    claimRequests.push({
+        ...allReports[index],
+        claimStatus: 'pending',
+        claimed: false
+    });
+    localStorage.setItem(`claims_${loggedInEmail}`, JSON.stringify(claimRequests));
     loadReports();
     applyFilters();
     displayClaimedItems();

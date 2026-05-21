@@ -371,6 +371,77 @@ function renderUsersTable() {
   });
 }
 
+function renderClaimRequestsTable() {
+  const reports = getAllReports();
+  const claimRequests = reports.filter(r => r.claimStatus === 'pending' || r.claimStatus === 'approved' || r.claimStatus === 'rejected');
+  const tbody = document.getElementById('claimRequestsTableBody');
+  if (!claimRequests.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No claim requests yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = claimRequests.map((report, index) => {
+    const status = report.claimStatus || 'pending';
+    let actionBtns = '';
+    if (status === 'pending') {
+      actionBtns = `<button class="admin-action approve-btn" data-claim-index="${index}" data-action="approve">Approve</button> <button class="admin-action reject-btn" data-claim-index="${index}" data-action="reject">Reject</button>`;
+    } else {
+      actionBtns = '';
+    }
+    return `
+      <tr>
+        <td><strong>${report.itemName}</strong><br><span>${report.category}</span></td>
+        <td>${report.claimerName || report.claimerEmail || ''}</td>
+        <td><span class="status-tag status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+        <td>${actionBtns}</td>
+      </tr>
+    `;
+  }).join('');
+  // Add event listeners for approve/reject
+  tbody.querySelectorAll('.admin-action').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = Number(this.dataset.claimIndex);
+      const action = this.dataset.action;
+      handleClaimRequestAction(idx, action);
+    });
+  });
+}
+
+function handleClaimRequestAction(index, action) {
+  const reports = getAllReports();
+  const claimRequests = reports.filter(r => r.claimStatus === 'pending' || r.claimStatus === 'approved' || r.claimStatus === 'rejected');
+  const report = claimRequests[index];
+  if (!report) return;
+  if (action === 'approve') {
+    report.claimStatus = 'approved';
+    report.claimed = true;
+    report.claimResponse = 'Approved by admin';
+  } else if (action === 'reject') {
+    report.claimStatus = 'rejected';
+    report.claimed = false;
+    report.claimResponse = 'Rejected by admin';
+  }
+  // Update global reports
+  const allReports = getAllReports();
+  const globalIdx = allReports.findIndex(r => r.date === report.date && r.itemName === report.itemName && r.userEmail === report.userEmail);
+  if (globalIdx !== -1) {
+    allReports[globalIdx] = report;
+    localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
+  }
+  // Update user's claim requests
+  if (report.claimerEmail) {
+    let claimRequests = JSON.parse(localStorage.getItem(`claims_${report.claimerEmail}`)) || [];
+    claimRequests = claimRequests.map(r => {
+      if (r.date === report.date && r.itemName === report.itemName) {
+        return { ...r, claimStatus: report.claimStatus, claimed: report.claimed, claimResponse: report.claimResponse };
+      }
+      return r;
+    });
+    localStorage.setItem(`claims_${report.claimerEmail}`, JSON.stringify(claimRequests));
+  }
+  renderClaimRequestsTable();
+  renderReportsTable();
+}
+
 function attachReportActions(bodyElement) {
   const actionButtons = bodyElement.querySelectorAll('.admin-action');
   actionButtons.forEach(button => {
@@ -442,6 +513,7 @@ function refreshDashboard() {
   renderSubReportTable('found', foundTableBody, 'No found item reports yet.');
   renderUsersTable();
   renderCharts();
+  renderClaimRequestsTable();
 }
 
 function switchTab(tabName) {
