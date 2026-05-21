@@ -96,6 +96,8 @@ body {
 .admin-widgets {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
 }
 
 .admin-widget {
@@ -115,12 +117,33 @@ body {
 
 .widget-head h3 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
+  color: var(--ctu-text);
+  font-weight: 700;
 }
 
 .widget-subtitle {
-  color: var(--text-mid);
-  font-size: 0.92rem;
+  color: #6b7280;
+  font-size: 0.82rem;
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.activity-range-select {
+  border: 1px solid var(--ctu-border);
+  background: var(--ctu-bg);
+  color: var(--ctu-text);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.activity-range-select:focus {
+  border-color: var(--ctu-primary);
 }
 
 .chart-container {
@@ -146,15 +169,19 @@ body {
 }
 
 .admin-card-title {
-  color: var(--text-mid);
-  font-size: 0.95rem;
+  color: #6b7280;
+  font-size: 0.88rem;
+  font-weight: 600;
   margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .admin-card-number {
   font-size: 2.75rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  color: var(--ctu-text);
 }
 
 .admin-main {

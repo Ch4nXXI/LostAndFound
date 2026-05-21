@@ -54,7 +54,7 @@ body {
 .navbar {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -170,6 +170,7 @@ body {
   min-width: 170px;
   overflow: hidden;
   flex-direction: column;
+  z-index: 1100;
 }
 
 .nav-user.open .user-dropdown { display: flex; }
@@ -214,7 +215,7 @@ body {
   animation: fadeDown .5s ease both;
   overflow: visible;
   position: relative;
-  z-index: 100;
+  z-index: 10;
 }
 
 .hero-copy {

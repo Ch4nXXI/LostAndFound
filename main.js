@@ -1,479 +1,457 @@
 // main.js
+import { auth, db } from './firebase.js';
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import {
+  doc, getDoc, collection, query, where,
+  orderBy, getDocs, updateDoc, deleteDoc, addDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-// Admin credentials for separate admin dashboard access
+// Admin credentials (kept as-is per your logic)
 const ADMIN_CREDENTIALS = {
-    email: 'admin@ctu.edu',
-    password: 'admin123'
+  email: 'admin@ctu.edu',
+  password: 'admin123'
 };
 
-// Declare loggedInEmail once for all page logic
-const loggedInEmail = localStorage.getItem('siit_logged_in');
-const adminLoggedIn = localStorage.getItem('siit_admin_logged_in');
-
-// Registration logic for SignUp.html
+// ── SIGNUP PAGE ───────────────────────────────────────────
 if (document.querySelector('.register-btn')) {
-    const registerBtn = document.querySelector('.register-btn');
-    registerBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const inputs = document.querySelectorAll('.signup-body input');
-        const firstName = inputs[0].value.trim();
-        const lastName = inputs[1].value.trim();
-        const phone = inputs[2].value.trim();
-        const email = inputs[3].value.trim();
-        const password = inputs[4].value;
-        const confirmPassword = inputs[5].value;
-        if (!firstName || !lastName || !phone || !email || !password || !confirmPassword) {
-            alert('Please fill in all fields.');
-            return;
-        }
-        if (password !== confirmPassword) {
-            alert('Passwords do not match.');
-            return;
-        }
-        // Get users array from localStorage
-        let users = JSON.parse(localStorage.getItem('siit_users')) || [];
-        if (users.some(u => u.email === email)) {
-            alert('email already in use');
-            return;
-        }
-        users.push({firstName, lastName, phone, email, password});
-        localStorage.setItem('siit_users', JSON.stringify(users));
-        alert('Account created successfully! Please log in.');
-        window.location.href = 'index.html';
-    });
+  const registerBtn = document.querySelector('.register-btn');
+  registerBtn.addEventListener('click', async function (e) {
+    e.preventDefault();
+
+    const inputs = document.querySelectorAll('.signup-body input');
+    const firstName = inputs[0].value.trim();
+    const lastName = inputs[1].value.trim();
+    const phone = inputs[2].value.trim();
+    const studentId = inputs[3].value.trim();
+    const email = inputs[4].value.trim();
+    const password = inputs[5].value;
+    const confirmPassword = inputs[6].value;
+
+    if (!firstName || !lastName || !phone || !studentId || !email || !password || !confirmPassword) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    try {
+      const { createUserWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+      const { setDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        firstName, lastName, phone, studentId, email,
+        createdAt: new Date().toISOString()
+      });
+
+      alert('Account created successfully! Please log in.');
+      window.location.href = 'index.html';
+    } catch (error) {
+      alert('Signup failed: ' + error.message);
+    }
+  });
 }
 
-// Login logic for index.html
+// ── LOGIN PAGE ────────────────────────────────────────────
 if (document.getElementById('login-btn')) {
-    const loginBtn = document.getElementById('login-btn');
-    loginBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
-        if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-            localStorage.setItem('siit_admin_logged_in', 'admin');
-            localStorage.removeItem('siit_logged_in');
-            window.location.href = 'admin.html';
-            return;
-        }
-        const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-        const user = users.find(u => u.email === email && u.password === password);
-        if (!user) {
-            alert('Invalid email or password.');
-            return;
-        }
-        localStorage.setItem('siit_logged_in', email);
-        localStorage.removeItem('siit_admin_logged_in');
-        window.location.href = 'dashboard.html';
-    });
+  const loginBtn = document.getElementById('login-btn');
+  loginBtn.addEventListener('click', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    // Admin login (kept using localStorage session as before)
+   if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
+  await signInWithEmailAndPassword(auth, email, password);
+  localStorage.setItem('siit_admin_logged_in', 'admin');
+  window.location.href = 'admin.html';
+  return;
 }
 
-// Dashboard logic for dashboard.html
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = 'dashboard.html';
+    } catch (error) {
+      alert('Invalid email or password.');
+    }
+  });
+}
+
+// ── DASHBOARD PAGE ────────────────────────────────────────
 if (window.location.href.includes('dashboard.html')) {
-    // Redirect to login if not logged in or if admin is logged in
-    if (!loggedInEmail || adminLoggedIn) {
-        window.location.href = 'index.html';
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = 'index.html';
+      return;
     }
-    // Set user name in dashboard
-    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-    const user = users.find(u => u.email === loggedInEmail);
-    if (user) {
-        const userNameElem = document.querySelector('.user-name');
-        const userAvatarElem = document.querySelector('.user-avatar');
-        if (userNameElem) userNameElem.textContent = user.firstName + ' ' + user.lastName;
-        if (userAvatarElem) userAvatarElem.textContent = (user.firstName[0] + (user.lastName[0] || '')).toUpperCase();
-        // Also update welcome text if present
-        const welcomeText = document.querySelector('.welcome-sub strong');
-        if (welcomeText) welcomeText.textContent = user.firstName + ' ' + user.lastName;
-    }
-    // Toggle Report Dropdown
-    const reportBtn = document.getElementById('reportBtn');
-    const reportDropdown = document.getElementById('reportDropdown');
-    if (reportBtn && reportDropdown) {
-        reportBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            reportDropdown.classList.toggle('show');
-        });
-        document.addEventListener('click', () => {
-            reportDropdown.classList.remove('show');
-        });
-        
-        // Report form logic
-        const lostLink = reportDropdown.querySelector('a:nth-child(1)');
-        const foundLink = reportDropdown.querySelector('a:nth-child(2)');
-        
-        if (lostLink) {
-            lostLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                showReportForm('lost');
-            });
-        }
-        if (foundLink) {
-            foundLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                showReportForm('found');
-            });
-        }
-    }
-    // User dropdown
+
+    // Load user profile from Firestore
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    const userData = userDoc.exists() ? userDoc.data() : {};
+    const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+    const initials = ((userData.firstName?.[0] || '') + (userData.lastName?.[0] || '')).toUpperCase();
+
+    const userNameElem = document.querySelector('.user-name');
+    const userAvatarElem = document.querySelector('.user-avatar');
+    const welcomeText = document.querySelector('.welcome-sub strong');
+    if (userNameElem) userNameElem.textContent = fullName;
+    if (userAvatarElem) userAvatarElem.textContent = initials;
+    if (welcomeText) welcomeText.textContent = fullName;
+
+    // Nav user dropdown
     const navUser = document.querySelector('.nav-user');
     if (navUser) {
-        navUser.addEventListener('click', () => {
-            navUser.classList.toggle('open');
-        });
-        document.addEventListener('click', (e) => {
-            if (!navUser.contains(e.target)) navUser.classList.remove('open');
-        });
+      navUser.addEventListener('click', () => navUser.classList.toggle('open'));
+      document.addEventListener('click', (e) => {
+        if (!navUser.contains(e.target)) navUser.classList.remove('open');
+      });
     }
-    // Logout logic
+
+    // Logout
     const logoutBtn = document.querySelector('.logout');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            localStorage.removeItem('siit_logged_in');
-            window.location.href = 'index.html';
-        });
+      logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        sessionStorage.setItem('intentional_logout', '1');
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
     }
-    // Show only the logged-in user's reports in the dashboard
-    const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-    // Update stats
-    const lostCount = userReports.filter(r => r.type === 'lost').length;
-    const foundCount = userReports.filter(r => r.type === 'found').length;
+
+    // Load user's reports from Firestore
+    const itemsQuery = query(
+      collection(db, "items"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+    const itemsSnap = await getDocs(itemsQuery);
+    const userReports = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Stats
+    const lostCount = userReports.filter(r => r.status === 'lost').length;
+    const foundCount = userReports.filter(r => r.status === 'found').length;
     document.querySelector('.stat-card.lost .stat-number').textContent = lostCount;
     document.querySelector('.stat-card.found .stat-number').textContent = foundCount;
-    // Total claimed (items this user has claimed)
-    let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
-    const claimedCount = allReports.filter(r => r.claimerEmail === loggedInEmail).length;
-    document.querySelector('.stat-card.claimed .stat-number').textContent = claimedCount;
-    // Example: update activity log table
+
+    // Claims count
+    const claimsQuery = query(
+      collection(db, "claims"),
+      where("claimedBy", "==", user.uid)
+    );
+    const claimsSnap = await getDocs(claimsQuery);
+    document.querySelector('.stat-card.claimed .stat-number').textContent = claimsSnap.size;
+
+    // Activity log — user's own reports + items they claimed
     const activityTableBody = document.querySelector('.activity-table tbody');
-    // Combine user's own reports and reports they have claimed
-    let claimedByUser = allReports.filter(r => r.claimerEmail === loggedInEmail);
-    let combinedReports = [...userReports, ...claimedByUser.filter(r => !userReports.some(ur => ur.date === r.date && ur.itemName === r.itemName))];
-    // Sort newest to oldest
-    combinedReports = combinedReports.sort((a, b) => new Date(b.date) - new Date(a.date));
     if (activityTableBody) {
-        if (combinedReports.length === 0) {
-            activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting or claiming an item!</p></div></td></tr>`;
-        } else {
-            activityTableBody.innerHTML = combinedReports.map((report, idx) => `
-                <tr>
-                  <td class="item-cell">
-                    <div class="item-thumb">
-                      <i class="fas ${report.type === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i>
-                    </div>
-                    <div class="item-meta">
-                      <span class="item-name">${report.itemName}</span>
-                      <span class="item-date">Reported: ${new Date(report.date).toLocaleDateString()}</span>
-                    </div>
-                  </td>
-                  <td><span class="badge-category">${report.category}</span></td>
-                  <td><span class="badge-status ${report.claimed ? 'resolved' : 'pending'}">${report.claimed ? 'Claimed' : 'Pending'}</span></td>
-                  <td><button class="btn-view" onclick="showDashboardReportDetails(${idx})">View Details</button></td>
-                </tr>
-            `).join('');
-        }
-    }
-    // View details modal for activity log
-    window.showDashboardReportDetails = function(idx) {
-        const report = combinedReports[idx];
-        let modal = document.getElementById('dashboard-report-modal');
-        if (!modal) {
+      // Build claim rows with item details
+      const claimRows = await Promise.all(claimsSnap.docs.map(async (claimDoc) => {
+        const claim = { id: claimDoc.id, ...claimDoc.data() };
+        const itemDoc = await getDoc(doc(db, "items", claim.itemId));
+        const item = itemDoc.exists() ? { id: claim.itemId, ...itemDoc.data() } : null;
+        if (!item) return null;
+        return { ...item, _isClaim: true, _claimStatus: claim.status, _claimDate: claim.createdAt };
+      }));
+      const validClaimRows = claimRows.filter(Boolean);
+
+      // Merge: own reports + claim entries, sort by date descending
+      const allActivity = [
+        ...userReports.map(r => ({ ...r, _isClaim: false })),
+        ...validClaimRows
+      ].sort((a, b) => {
+        const aTime = (a._isClaim ? a._claimDate : a.createdAt)?.toDate?.() ?? new Date(0);
+        const bTime = (b._isClaim ? b._claimDate : b.createdAt)?.toDate?.() ?? new Date(0);
+        return bTime - aTime;
+      });
+
+      if (allActivity.length === 0) {
+        activityTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No activity yet. Start by reporting or claiming an item!</p></div></td></tr>`;
+      } else {
+        activityTableBody.innerHTML = allActivity.map((entry, idx) => {
+          const isClaim = entry._isClaim;
+          const dateVal = isClaim ? entry._claimDate : entry.createdAt;
+          const dateStr = dateVal ? new Date(dateVal.toDate()).toLocaleDateString() : 'N/A';
+          const statusLabel = isClaim
+            ? (entry._claimStatus === 'approved' ? 'Claim Approved' : entry._claimStatus === 'rejected' ? 'Claim Rejected' : 'Claim Pending')
+            : (entry.claimStatus === 'approved' ? 'Claimed' : 'Pending');
+          const statusClass = (isClaim ? entry._claimStatus : entry.claimStatus) === 'approved' ? 'resolved' : 'pending';
+          const icon = isClaim ? 'fa-file-invoice' : (entry.status === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart');
+          const typeLabel = isClaim ? 'Claim' : (entry.status === 'lost' ? 'Lost' : 'Found');
+          return `
+            <tr>
+              <td class="item-cell">
+                <div class="item-thumb">
+                  <i class="fas ${icon}"></i>
+                </div>
+                <div class="item-meta">
+                  <span class="item-name">${entry.itemName || 'Unknown item'}</span>
+                  <span class="item-date">${isClaim ? 'Claimed' : 'Reported'}: ${dateStr}</span>
+                </div>
+              </td>
+              <td><span class="badge-category">${entry.category || typeLabel}</span></td>
+              <td><span class="badge-status ${statusClass}">${statusLabel}</span></td>
+              <td><button class="btn-view" onclick="showDashboardReportDetails(${idx})">View Details</button></td>
+            </tr>
+          `;
+        }).join('');
+
+        // View details modal covers both report and claim entries
+        window.showDashboardReportDetails = function (idx) {
+          const entry = allActivity[idx];
+          const isClaim = entry._isClaim;
+          let modal = document.getElementById('dashboard-report-modal');
+          if (!modal) {
             modal = document.createElement('div');
             modal.id = 'dashboard-report-modal';
             modal.style.cssText = 'position:fixed;z-index:2000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
             document.body.appendChild(modal);
-        }
-        modal.innerHTML = `
+          }
+          const statusLabel = isClaim
+            ? (entry._claimStatus === 'approved' ? 'Claim Approved' : entry._claimStatus === 'rejected' ? 'Claim Rejected' : 'Pending Admin Approval')
+            : (entry.claimStatus === 'approved' ? 'Claimed' : 'Pending');
+          modal.innerHTML = `
             <div style="background:#fff;padding:2rem;border-radius:12px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;position:relative;">
-                <span style="position:absolute;top:10px;right:18px;font-size:2rem;cursor:pointer;color:#aaa;font-weight:bold;" onclick="document.getElementById('dashboard-report-modal').remove()">&times;</span>
-                <h2>${report.itemName}</h2>
-                <p style="color: #666; margin-bottom: 1.5rem;">
-                    <strong>Type:</strong> <span style="text-transform: uppercase; color: ${report.type === 'lost' ? '#e05252' : '#2e7d32'};">${report.type}</span>
-                </p>
-                ${report.photo ? `<img src="${report.photo}" style="max-width:100%;max-height:250px;border-radius:10px;margin-bottom:1rem;">` : ''}
-                <div style="margin-bottom:1rem;"><strong>Category:</strong> ${report.category}</div>
-                <div style="margin-bottom:1rem;"><strong>Location:</strong> ${report.location}</div>
-                <div style="margin-bottom:1rem;"><strong>Date Reported:</strong> ${new Date(report.date).toLocaleString()}</div>
-                <div style="margin-bottom:1rem;"><strong>Description:</strong> ${report.description}</div>
-                <div style="margin-bottom:1rem;"><strong>Status:</strong> ${report.claimed ? 'Claimed' : 'Pending'}</div>
-                ${report.claimed && report.claimerName ? `<div style='margin-bottom:1rem;'><strong>Claimed By:</strong> ${report.claimerName} (${report.claimerEmail})</div>` : ''}
+              <span style="position:absolute;top:10px;right:18px;font-size:2rem;cursor:pointer;color:#aaa;font-weight:bold;" onclick="document.getElementById('dashboard-report-modal').remove()">&times;</span>
+              <h2>${entry.itemName}</h2>
+              <p style="color:#666;margin-bottom:1.5rem;"><strong>${isClaim ? 'Type: Claim Request' : 'Type:'}</strong> ${isClaim ? '' : `<span style="text-transform:uppercase;color:${entry.status === 'lost' ? '#e05252' : '#2e7d32'};">${entry.status}</span>`}</p>
+              ${entry.imageUrl ? `<img src="${entry.imageUrl}" style="max-width:100%;max-height:250px;border-radius:10px;margin-bottom:1rem;">` : ''}
+              <div style="margin-bottom:1rem;"><strong>Category:</strong> ${entry.category}</div>
+              <div style="margin-bottom:1rem;"><strong>Location:</strong> ${entry.location}</div>
+              <div style="margin-bottom:1rem;"><strong>Description:</strong> ${entry.description || 'N/A'}</div>
+              <div style="margin-bottom:1rem;"><strong>Status:</strong> ${statusLabel}</div>
             </div>
-        `;
+          `;
+        };
+      }
     }
-    // Show claim requests in dashboard
-    const claimRequests = JSON.parse(localStorage.getItem(`claims_${loggedInEmail}`)) || [];
+
+    // Claim requests section
     const claimTableBody = document.querySelector('.claims-panel tbody');
     if (claimTableBody) {
-        if (claimRequests.length === 0) {
-            claimTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No claim requests yet.</p></div></td></tr>`;
-        } else {
-            claimTableBody.innerHTML = claimRequests.map((req, idx) => `
-                <tr>
-                  <td class="item-cell">
-                    <div class="item-thumb">
-                      <i class="fas ${req.type === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i>
-                    </div>
-                    <div class="item-meta">
-                      <span class="item-name">${req.itemName}</span>
-                      <span class="item-date">Reported: ${new Date(req.date).toLocaleDateString()}</span>
-                    </div>
-                  </td>
-                  <td><span class="badge-category">${req.category}</span></td>
-                  <td><span class="badge-status ${req.claimStatus === 'approved' ? 'resolved' : req.claimStatus === 'rejected' ? 'rejected' : 'pending'}">
-                    ${req.claimStatus === 'approved' ? 'Claimed' : req.claimStatus === 'rejected' ? 'Rejected' : 'Pending for approval'}
-                  </span></td>
-                  <td>${req.claimResponse ? req.claimResponse : ''}</td>
-                </tr>
-            `).join('');
-        }
+      const claimDocs = claimsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (claimDocs.length === 0) {
+        claimTableBody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No claim requests yet.</p></div></td></tr>`;
+      } else {
+        // Fetch item details for each claim
+        const claimRows = await Promise.all(claimDocs.map(async (claim) => {
+          const itemDoc = await getDoc(doc(db, "items", claim.itemId));
+          const item = itemDoc.exists() ? itemDoc.data() : {};
+          return `
+            <tr>
+              <td class="item-cell">
+                <div class="item-thumb"><i class="fas ${item.status === 'lost' ? 'fa-magnifying-glass' : 'fa-hand-holding-heart'}"></i></div>
+                <div class="item-meta">
+                  <span class="item-name">${item.itemName || 'Unknown item'}</span>
+                  <span class="item-date">Submitted: ${claim.createdAt ? new Date(claim.createdAt.toDate()).toLocaleDateString() : 'N/A'}</span>
+                </div>
+              </td>
+              <td><span class="badge-category">${item.category || ''}</span></td>
+              <td><span class="badge-status ${claim.status === 'approved' ? 'resolved' : claim.status === 'rejected' ? 'rejected' : 'pending'}">
+                ${claim.status === 'approved' ? 'Claimed' : claim.status === 'rejected' ? 'Rejected' : 'Pending for approval'}
+              </span></td>
+              <td>${claim.claimResponse || ''}</td>
+            </tr>
+          `;
+        }));
+        claimTableBody.innerHTML = claimRows.join('');
+      }
     }
+
+    // Badge count
+    const badgeCount = document.querySelector('.badge-count');
+    if (badgeCount) badgeCount.textContent = `${claimsSnap.size} Total`;
+  });
 }
 
-// Show report form
-function showReportForm(type) {
-    const modal = document.createElement('div');
-    modal.id = 'report-form-modal';
-    modal.style.cssText = 'display:flex;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.5);align-items:center;justify-content:center;';
-    
-    modal.innerHTML = `
-        <div style="background-color:white;padding:2rem;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
-            <span style="color:#aaa;float:right;font-size:2rem;font-weight:bold;cursor:pointer;" onclick="document.getElementById('report-form-modal').remove();">&times;</span>
-            <h2 style="color:#1b5e20;margin-bottom:1.5rem;">Report ${type === 'lost' ? 'Lost' : 'Found'} Item</h2>
-            
-            <form id="report-form">
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Item Name</label>
-                    <input type="text" id="item-name" placeholder="Enter item name" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
-                </div>
-                
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Category</label>
-                    <select id="item-category" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
-                        <option value="">Select category</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Clothing">Clothing</option>
-                        <option value="Accessories">Accessories</option>
-                        <option value="Documents">Documents</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Location</label>
-                    <input type="text" id="item-location" placeholder="Where was it ${type === 'lost' ? 'lost' : 'found'}?" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;" required>
-                </div>
-                
-                <div style="margin-bottom:1rem;">
-                    <label style="display:block;font-weight:600;margin-bottom:0.5rem;color:#333;">Description</label>
-                    <textarea id="item-description" placeholder="Provide details about the item" style="width:100%;padding:0.7rem;border:1px solid #ddd;border-radius:8px;font-family:'Poppins',sans-serif;resize:vertical;min-height:100px;" required></textarea>
-                </div>
-                
-                <button type="submit" style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#2e7d32,#43a047);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Submit Report</button>
-            </form>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    document.getElementById('report-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const report = {
-            type: type,
-            itemName: document.getElementById('item-name').value,
-            category: document.getElementById('item-category').value,
-            location: document.getElementById('item-location').value,
-            description: document.getElementById('item-description').value,
-            date: new Date().toISOString()
-        };
-        
-        // Save to user's own reports
-        const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-        userReports.push(report);
-        localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
-        // Save to global reports for browse page
-        let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
-        const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-        const user = users.find(u => u.email === loggedInEmail);
-        report.userName = user ? user.firstName + ' ' + user.lastName : '';
-        report.userEmail = loggedInEmail;
-        report.claimed = false;
-        allReports.push(report);
-        localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-        alert('Report submitted successfully!');
-        window.location.href = 'browse.html';
-    });
-    
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) modal.remove();
-    });
-}
-
-// Report page logic for report.html
+// ── REPORT PAGE ───────────────────────────────────────────
 if (window.location.pathname.endsWith('report.html')) {
-    // Block access if not logged in
-    if (!loggedInEmail) {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      if (!sessionStorage.getItem('intentional_logout')) {
         alert('You must log in first!');
-        window.location.replace('index.html');
-        throw new Error('Not logged in');
+      }
+      sessionStorage.removeItem('intentional_logout');
+      window.location.replace('index.html');
+      return;
     }
-    // Set user name and avatar
-    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-    const user = users.find(u => u.email === loggedInEmail);
-    window.addEventListener('DOMContentLoaded', function() {
-        if (user) {
-            const userNameElem = document.querySelector('.user-name');
-            const userAvatarElem = document.querySelector('.user-avatar');
-            if (userNameElem) userNameElem.textContent = user.firstName + ' ' + user.lastName;
-            if (userAvatarElem) userAvatarElem.textContent = (user.firstName[0] + (user.lastName[0] || '')).toUpperCase();
+
+    // Load user profile
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    const userData = userDoc.exists() ? userDoc.data() : {};
+    const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+    const initials = ((userData.firstName?.[0] || '') + (userData.lastName?.[0] || '')).toUpperCase();
+
+    const userNameElem = document.querySelector('.user-name');
+    const userAvatarElem = document.querySelector('.user-avatar');
+    if (userNameElem) userNameElem.textContent = fullName;
+    if (userAvatarElem) userAvatarElem.textContent = initials;
+
+    // Nav dropdown
+    const navUser = document.querySelector('.nav-user');
+    if (navUser) {
+      navUser.addEventListener('click', () => navUser.classList.toggle('open'));
+      document.addEventListener('click', (e) => {
+        if (!navUser.contains(e.target)) navUser.classList.remove('open');
+      });
+    }
+
+    // Logout
+    const logoutBtn = document.querySelector('.logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        sessionStorage.setItem('intentional_logout', '1');
+        await signOut(auth);
+        window.location.href = 'index.html';
+      });
+    }
+
+    // Load and display user's own reports
+    async function displayUserReports(filter = 'all') {
+      let q;
+      if (filter === 'all') {
+        q = query(collection(db, "items"), where("uid", "==", user.uid), orderBy("createdAt", "desc"));
+      } else {
+        q = query(collection(db, "items"), where("uid", "==", user.uid), where("status", "==", filter), orderBy("createdAt", "desc"));
+      }
+      const snap = await getDocs(q);
+      const browseList = document.getElementById('browseList');
+      const browseEmpty = document.getElementById('browseEmpty');
+
+      if (snap.empty) {
+        browseList.innerHTML = '';
+        if (browseEmpty) browseEmpty.style.display = '';
+        return;
+      }
+      if (browseEmpty) browseEmpty.style.display = 'none';
+      browseList.innerHTML = snap.docs.map(d => {
+        const report = d.data();
+        const docId = d.id;
+        return `
+          <div class="report-card">
+            <button onclick="deleteReport('${docId}')" style="background:#e05252;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-weight:600;cursor:pointer;float:left;margin-right:1rem;">Delete</button>
+            ${report.imageUrl ? `<img src="${report.imageUrl}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;">` : ''}
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:1.1rem;">${report.itemName}</div>
+              <div style="color:#4a6352;font-size:0.95rem;">${report.category} | ${report.status} | ${report.createdAt ? new Date(report.createdAt.toDate()).toLocaleDateString() : 'N/A'}</div>
+              <div style="color:#888;font-size:0.9rem;">${report.description || ''}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.setReportFilter = function (type) {
+      // Update active button state
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(`'${type}'`));
+      });
+      displayUserReports(type);
+    };
+
+    window.deleteReport = async function (docId) {
+      if (!confirm('Are you sure you want to delete this report?')) return;
+      await deleteDoc(doc(db, "items", docId));
+      displayUserReports();
+    };
+
+    displayUserReports();
+
+    // Report form submission
+    const reportForm = document.getElementById('reportForm');
+    if (reportForm) {
+      reportForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const itemType = document.getElementById('itemType').value;
+        const itemCategory = document.getElementById('itemCategory').value;
+        const itemName = document.getElementById('itemName').value.trim();
+        const itemColor = document.getElementById('itemColor').value.trim();
+        const itemLocation = document.getElementById('itemLocation').value.trim();
+        const itemDetails = document.getElementById('itemDetails').value.trim();
+        const itemPhotoFile = document.getElementById('itemPhoto').files[0];
+
+        if (!itemName || !itemColor || !itemLocation) {
+          alert('Please fill in all required fields.');
+          return;
         }
-        // User dropdown
-        const navUser = document.querySelector('.nav-user');
-        if (navUser) {
-            navUser.addEventListener('click', () => {
-                navUser.classList.toggle('open');
-            });
-            document.addEventListener('click', (e) => {
-                if (!navUser.contains(e.target)) navUser.classList.remove('open');
-            });
+
+        let imageUrl = '';
+        if (itemPhotoFile) {
+          if (itemPhotoFile.size > 700 * 1024) {
+            alert('Image is too large. Please upload an image under 700KB.');
+            return;
+          }
+          imageUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read image.'));
+            reader.readAsDataURL(itemPhotoFile);
+          });
         }
-        // Logout logic
-        const logoutBtn = document.querySelector('.logout');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                localStorage.removeItem('siit_logged_in');
-                window.location.href = 'index.html';
-            });
+
+        try {
+          await addDoc(collection(db, "items"), {
+            status: itemType,
+            category: itemCategory,
+            itemName,
+            description: itemColor + (itemDetails ? ' - ' + itemDetails : ''),
+            location: itemLocation,
+            imageUrl,
+            uid: user.uid,
+            userName: fullName,
+            userEmail: userData.email || user.email,
+            claimStatus: 'open',
+            claimed: false,
+            createdAt: serverTimestamp()
+          });
+
+          alert('Report submitted successfully!');
+          reportForm.reset();
+          document.getElementById('fileName').textContent = '';
+          displayUserReports();
+        } catch (err) {
+          console.error('Error submitting report:', err);
+          alert('Failed to submit report.');
         }
-        // Report form submission
-        const reportForm = document.getElementById('reportForm');
-        if (reportForm) {
-            reportForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const itemType = document.getElementById('itemType').value;
-                const itemCategory = document.getElementById('itemCategory').value;
-                const itemName = document.getElementById('itemName').value.trim();
-                const itemColor = document.getElementById('itemColor').value.trim();
-                const itemLocation = document.getElementById('itemLocation').value.trim();
-                const itemDetails = document.getElementById('itemDetails').value.trim();
-                const itemPhoto = document.getElementById('itemPhoto').files[0];
-                
-                if (!itemName || !itemColor || !itemLocation) {
-                    alert('Please fill in all required fields.');
-                    return;
-                }
-                
-                let photoData = null;
-                if (itemPhoto) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        photoData = e.target.result;
-                        saveReport(itemType, itemCategory, itemName, itemColor, itemLocation, itemDetails, photoData);
-                    };
-                    reader.readAsDataURL(itemPhoto);
-                } else {
-                    saveReport(itemType, itemCategory, itemName, itemColor, itemLocation, itemDetails, null);
-                }
-            });
+      });
+    }
+
+    // File upload display
+    const itemPhoto = document.getElementById('itemPhoto');
+    if (itemPhoto) {
+      itemPhoto.addEventListener('change', function () {
+        const fileName = document.getElementById('fileName');
+        if (this.files.length > 0) {
+          fileName.textContent = this.files[0].name;
+        } else {
+          fileName.textContent = '';
         }
-        function saveReport(type, category, itemName, itemColor, location, details, photo) {
-            const report = {
-                type: type,
-                category: category,
-                itemName: itemName,
-                description: itemColor + (details ? ' - ' + details : ''),
-                location: location,
-                photo: photo,
-                date: new Date().toISOString(),
-                claimed: false,
-                claimStatus: 'open',
-                claimRequestedAt: null,
-                claimResponse: null
-            };
-            
-            // Save to user's own reports
-            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-            userReports.push(report);
-            localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
-            
-            // Save to global reports for browse page
-            let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
-            report.userName = user ? user.firstName + ' ' + user.lastName : '';
-            report.userEmail = loggedInEmail;
-            allReports.push(report);
-            localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-            
-            alert('Report submitted successfully!');
-            document.getElementById('reportForm').reset();
-            document.getElementById('fileName').textContent = '';
-            displayUserReports();
-        }
-        // Display user's own reports in the right box (Available Reports) with filter buttons
-        let currentFilter = 'all';
-        function displayUserReports() {
-            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-            const browseList = document.getElementById('browseList');
-            const browseEmpty = document.getElementById('browseEmpty');
-            let filtered = userReports;
-            if (currentFilter === 'lost') filtered = userReports.filter(r => r.type === 'lost');
-            if (currentFilter === 'found') filtered = userReports.filter(r => r.type === 'found');
-            filtered = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-            if (!filtered.length) {
-                browseList.innerHTML = '';
-                browseEmpty.style.display = '';
-                return;
-            }
-            browseEmpty.style.display = 'none';
-            browseList.innerHTML = filtered.map((report, idx) => `
-                <div class="report-card">
-                    <button onclick="deleteReport(${idx})" style="background:#e05252;color:#fff;border:none;border-radius:8px;padding:0.5rem 1rem;font-weight:600;cursor:pointer;float:left;margin-right:1rem;">Delete</button>
-                    ${report.photo ? `<img src="${report.photo}" style="width:80px;height:80px;border-radius:8px;object-fit:cover;">` : ''}
-                    <div style="flex:1;">
-                        <div style="font-weight:700;font-size:1.1rem;">${report.itemName}</div>
-                        <div style="color:#4a6352;font-size:0.95rem;">${report.category} | ${report.type} | ${new Date(report.date).toLocaleDateString()}</div>
-                        <div style="color:#888;font-size:0.9rem;">${report.description}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-        // Add filter button listeners
-        window.setReportFilter = function(type) {
-            currentFilter = type;
-            displayUserReports();
-        }
-        displayUserReports();
-        window.deleteReport = function(idx) {
-            const userReports = JSON.parse(localStorage.getItem(`reports_${loggedInEmail}`)) || [];
-            if (!confirm('Are you sure you want to delete this report?')) return;
-            // Remove from user's own reports
-            const deleted = userReports.splice(idx, 1)[0];
-            localStorage.setItem(`reports_${loggedInEmail}`, JSON.stringify(userReports));
-            // Remove from global reports (browse)
-            let allReports = JSON.parse(localStorage.getItem('siit_all_reports')) || [];
-            allReports = allReports.filter(r => !(r.userEmail === loggedInEmail && r.date === deleted.date && r.itemName === deleted.itemName));
-            localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-            displayUserReports();
-        }
-        // File upload handler
-        const itemPhoto = document.getElementById('itemPhoto');
-        if (itemPhoto) {
-            itemPhoto.addEventListener('change', function() {
-                const fileName = document.getElementById('fileName');
-                if (this.files.length > 0) {
-                    fileName.textContent = this.files[0].name;
-                } else {
-                    fileName.textContent = '';
-                }
-            });
-        }
-        // Clear form button
-        const clearFormBtn = document.getElementById('clearFormBtn');
-        if (clearFormBtn) {
-            clearFormBtn.addEventListener('click', function() {
-                document.getElementById('reportForm').reset();
-                document.getElementById('fileName').textContent = '';
-            });
-        }
-    });
+      });
+    }
+
+    // Clear form button
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    if (clearFormBtn) {
+      clearFormBtn.addEventListener('click', function () {
+        reportForm.reset();
+        document.getElementById('fileName').textContent = '';
+      });
+    }
+
+    // Focus report button
+    const focusReportBtn = document.getElementById('focusReportBtn');
+    if (focusReportBtn) {
+      focusReportBtn.addEventListener('click', () => {
+        document.getElementById('itemName').focus();
+      });
+    }
+  });
 }

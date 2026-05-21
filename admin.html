@@ -58,8 +58,15 @@
       </div>
       <div class="admin-widget widget-chart">
         <div class="widget-head">
-          <h3>Recent Activity</h3>
-          <span class="widget-subtitle">Reports submitted in the past 7 days</span>
+          <div>
+            <h3>Recent Activity</h3>
+            <span class="widget-subtitle" id="activitySubtitle">Reports submitted in the past 7 days</span>
+          </div>
+          <select id="activityRange" class="activity-range-select">
+            <option value="7">Past 7 Days</option>
+            <option value="14">Past 2 Weeks</option>
+            <option value="30">Past Month</option>
+          </select>
         </div>
         <div class="chart-container">
           <canvas id="activityChart"></canvas>
@@ -182,7 +189,9 @@
     </main>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-  <script src="admin.js"></script>
+  <script type="module" src="firebase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script type="module" src="admin.js"></script>
+ 
 </body>
 </html>

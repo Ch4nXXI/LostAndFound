@@ -1,9 +1,20 @@
-const adminSession = localStorage.getItem('siit_admin_logged_in');
+// admin.js
+import { auth, db } from './firebase.js';
+import {
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import {
+  collection, getDocs, doc, updateDoc,
+  deleteDoc, query, orderBy, where, getDoc
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
+// ── ADMIN SESSION CHECK ───────────────────────────────────
+const adminSession = localStorage.getItem('siit_admin_logged_in');
 if (!adminSession) {
   window.location.href = 'index.html';
 }
 
+// ── DOM REFERENCES ────────────────────────────────────────
 const totalReportsElem = document.getElementById('totalReports');
 const pendingReportsElem = document.getElementById('pendingReports');
 const totalUsersElem = document.getElementById('totalUsers');
@@ -16,99 +27,84 @@ const logoutBtn = document.getElementById('admin-logout');
 const reportsTypeCanvas = document.getElementById('reportsTypeChart');
 const claimedCanvas = document.getElementById('claimedChart');
 const activityCanvas = document.getElementById('activityChart');
+
 let reportsTypeChart = null;
 let claimedChart = null;
 let activityChart = null;
 
-function getAllReports() {
-  return JSON.parse(localStorage.getItem('siit_all_reports')) || [];
+// ── FETCH ALL REPORTS FROM FIRESTORE ──────────────────────
+async function getAllReports() {
+  const q = query(collection(db, "items"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-function getUsers() {
-  return JSON.parse(localStorage.getItem('siit_users')) || [];
+// ── FETCH ALL USERS FROM FIRESTORE ────────────────────────
+async function getAllUsers() {
+  const snap = await getDocs(collection(db, "users"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-function saveAllReports(reports) {
-  localStorage.setItem('siit_all_reports', JSON.stringify(reports));
+// ── FETCH ALL CLAIMS FROM FIRESTORE ──────────────────────
+async function getAllClaims() {
+  const snap = await getDocs(collection(db, "claims"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-function saveUsers(users) {
-  localStorage.setItem('siit_users', JSON.stringify(users));
-}
-
-function normalizeReports() {
-  const reports = getAllReports();
-  let changed = false;
-  reports.forEach(report => {
-    if (!report.id) {
-      report.id = `${report.userEmail || 'unknown'}|${report.date || Date.now()}|${report.itemName || 'item'}`;
-      changed = true;
-    }
-  });
-  if (changed) {
-    saveAllReports(reports);
-  }
-}
-
-function renderStats() {
-  const reports = getAllReports();
-  const users = getUsers();
-  const pending = reports.filter(report => report.claimStatus === 'requested').length;
+// ── RENDER STATS ──────────────────────────────────────────
+async function renderStats() {
+  const reports = await getAllReports();
+  const users = await getAllUsers();
+  const pending = reports.filter(r => r.claimStatus === 'pending' || r.claimStatus === 'requested').length;
 
   totalReportsElem.textContent = reports.length;
   pendingReportsElem.textContent = pending;
   totalUsersElem.textContent = users.length;
 }
 
-function getReportsByType() {
-  const reports = getAllReports();
-  return {
-    lost: reports.filter(report => report.type === 'lost').length,
-    found: reports.filter(report => report.type === 'found').length,
-  };
-}
-
-function getClaimedCount() {
-  const reports = getAllReports();
-  return reports.filter(report => report.claimed === true || report.claimStatus === 'approved').length;
-}
-
-function getLast7Days() {
+// ── CHART HELPERS ─────────────────────────────────────────
+function getLastNDays(n) {
   const result = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = n - 1; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    const label = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const label = n <= 7
+      ? date.toLocaleDateString('en-US', { weekday: 'short' })
+      : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     result.push({ key: date.toISOString().slice(0, 10), label });
   }
   return result;
 }
 
-function getRecentActivityCounts() {
-  const reports = getAllReports();
-  const last7 = getLast7Days();
-  return last7.map(day => {
-    return reports.filter(report => {
-      const reportDate = new Date(report.date).toISOString().slice(0, 10);
-      return reportDate === day.key;
-    }).length;
-  });
-}
+// ── RENDER CHARTS ─────────────────────────────────────────
+async function renderCharts(activityDays = 7) {
+  const reports = await getAllReports();
+  const lostCount = reports.filter(r => r.status === 'lost').length;
+  const foundCount = reports.filter(r => r.status === 'found').length;
+  const claimedCount = reports.filter(r => r.claimStatus === 'approved').length;
 
-function renderCharts() {
-  const reportTypeData = getReportsByType();
-  const last7Days = getLast7Days();
-  const activityCounts = getRecentActivityCounts();
+  const days = getLastNDays(activityDays);
+  const activityCounts = days.map(day =>
+    reports.filter(r => {
+      if (!r.createdAt) return false;
+      return r.createdAt.toDate().toISOString().slice(0, 10) === day.key;
+    }).length
+  );
 
-  if (reportsTypeChart) {
-    reportsTypeChart.destroy();
+  // Update subtitle text
+  const subtitle = document.getElementById('activitySubtitle');
+  if (subtitle) {
+    const labels = { 7: 'past 7 days', 14: 'past 2 weeks', 30: 'past month' };
+    subtitle.textContent = `Reports submitted in the ${labels[activityDays] || 'past 7 days'}`;
   }
+
+  if (reportsTypeChart) reportsTypeChart.destroy();
   reportsTypeChart = new Chart(reportsTypeCanvas, {
     type: 'doughnut',
     data: {
       labels: ['Lost', 'Found'],
       datasets: [{
-        data: [reportTypeData.lost, reportTypeData.found],
+        data: [lostCount, foundCount],
         backgroundColor: ['#f97316', '#22c55e'],
         hoverBackgroundColor: ['#fb923c', '#4ade80'],
         borderWidth: 0,
@@ -116,31 +112,21 @@ function renderCharts() {
     },
     options: {
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#cbd5e1' },
-        },
-        tooltip: {
-          callbacks: {
-            label: context => `${context.label}: ${context.formattedValue}`,
-          },
-        },
+        legend: { position: 'bottom', labels: { color: '#4a3a2a', font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.formattedValue}` } },
       },
       maintainAspectRatio: false,
     },
   });
 
-  const claimedCount = getClaimedCount();
-  if (claimedChart) {
-    claimedChart.destroy();
-  }
+  if (claimedChart) claimedChart.destroy();
   claimedChart = new Chart(claimedCanvas, {
     type: 'bar',
     data: {
       labels: ['Lost Items', 'Found Items', 'Claimed Items'],
       datasets: [{
         label: 'Count',
-        data: [reportTypeData.lost, reportTypeData.found, claimedCount],
+        data: [lostCount, foundCount, claimedCount],
         backgroundColor: ['#f97316', '#22c55e', '#3b82f6'],
         borderRadius: 12,
       }],
@@ -148,391 +134,338 @@ function renderCharts() {
     options: {
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => `${context.label}: ${context.formattedValue}`,
-          },
-        },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.formattedValue}` } },
       },
       scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: '#cbd5e1' },
-        },
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#cbd5e1', precision: 0 },
-          grid: { color: 'rgba(148, 163, 184, 0.12)' },
-        },
+        x: { grid: { display: false }, ticks: { color: '#4a3a2a', font: { size: 11 } } },
+        y: { beginAtZero: true, ticks: { color: '#4a3a2a', precision: 0, font: { size: 11 } }, grid: { color: 'rgba(139,26,26,0.08)' } },
       },
       maintainAspectRatio: false,
     },
   });
 
-  if (activityChart) {
-    activityChart.destroy();
-  }
+  if (activityChart) activityChart.destroy();
   activityChart = new Chart(activityCanvas, {
     type: 'bar',
     data: {
-      labels: last7Days.map(day => day.label),
+      labels: days.map(d => d.label),
       datasets: [{
         label: 'Reports',
         data: activityCounts,
-        backgroundColor: '#38bdf8',
-        borderRadius: 12,
+        backgroundColor: '#8B1A1A',
+        hoverBackgroundColor: '#C0392B',
+        borderRadius: 8,
         maxBarThickness: 32,
       }],
     },
     options: {
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => `${context.dataset.label}: ${context.formattedValue}`,
-          },
-        },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue}` } },
       },
       scales: {
-        x: {
-          ticks: { color: '#cbd5e1' },
-          grid: { display: false },
-        },
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#cbd5e1', precision: 0 },
-          grid: { color: 'rgba(148, 163, 184, 0.12)' },
-        },
+        x: { ticks: { color: '#4a3a2a', font: { size: activityDays > 14 ? 9 : 11 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#4a3a2a', precision: 0, font: { size: 11 } }, grid: { color: 'rgba(139,26,26,0.08)' } },
       },
       maintainAspectRatio: false,
     },
   });
 }
 
-function renderReportsTable() {
-  const reports = getAllReports();
+// ── STATUS HELPERS ────────────────────────────────────────
+const statusLabels = { open: 'Open', pending: 'Pending Approval', requested: 'Pending Approval', approved: 'Claimed', rejected: 'Rejected' };
+const statusClasses = { open: 'status-open', pending: 'status-pending', requested: 'status-pending', approved: 'status-claimed', rejected: 'status-rejected' };
+
+// ── RENDER ALL REPORTS TABLE ──────────────────────────────
+async function renderReportsTable() {
+  const reports = await getAllReports();
   if (!reports.length) {
     reportsTableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No reports have been submitted yet.</td></tr>';
     return;
   }
-
-  reportsTableBody.innerHTML = reports
-    .map((report, index) => {
-      const reporter = report.userName || report.userEmail || 'Unknown';
-      const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
-      const statusLabels = {
-        open: 'Open',
-        requested: 'Pending Approval',
-        approved: 'Claimed',
-        rejected: 'Rejected',
-      };
-      const statusClasses = {
-        open: 'status-open',
-        requested: 'status-pending',
-        approved: 'status-claimed',
-        rejected: 'status-rejected',
-      };
-      const statusText = statusLabels[status] || 'Open';
-      const statusClass = statusClasses[status] || 'status-open';
-      let actionButtons = '';
-
-      if (status === 'requested') {
-        actionButtons = `
-          <div class="admin-action-group">
-            <button class="admin-action approve-btn" data-index="${index}" data-action="approve">Approve</button>
-            <button class="admin-action reject-btn" data-index="${index}" data-action="reject">Reject</button>
-            <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>
-          </div>
-        `;
-      } else if (status === 'approved') {
-        actionButtons = `<button class="admin-action reject-btn" data-index="${index}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
-      } else if (status === 'rejected') {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
-      } else {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${index}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-index="${index}" data-action="delete">Delete</button>`;
-      }
-
-      return `
-        <tr>
-          <td>
-            <strong>${report.itemName || 'Unnamed item'}</strong><br />
-            <span>${report.category || 'No category'}</span>
-          </td>
-          <td>${reporter}</td>
-          <td>${report.type ? report.type.charAt(0).toUpperCase() + report.type.slice(1) : 'Unknown'}</td>
-          <td><span class="status-tag ${statusClass}">${statusText}</span></td>
-          <td>${actionButtons}</td>
-        </tr>
-      `;
-    })
-    .join('');
-
+  reportsTableBody.innerHTML = reports.map((report) => {
+    const reporter = report.userName || report.userEmail || 'Unknown';
+    const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
+    const statusText = statusLabels[status] || 'Open';
+    const statusClass = statusClasses[status] || 'status-open';
+    const type = report.status ? report.status.charAt(0).toUpperCase() + report.status.slice(1) : 'Unknown';
+    let actionButtons = '';
+    if (status === 'pending' || status === 'requested') {
+      actionButtons = `
+        <div class="admin-action-group">
+          <button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Approve</button>
+          <button class="admin-action reject-btn" data-id="${report.id}" data-action="reject">Reject</button>
+          <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>
+        </div>`;
+    } else if (status === 'approved') {
+      actionButtons = `<button class="admin-action reject-btn" data-id="${report.id}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    } else if (status === 'rejected') {
+      actionButtons = `<button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    } else {
+      actionButtons = `<button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    }
+    return `
+      <tr>
+        <td><strong>${report.itemName || 'Unnamed item'}</strong><br/><span>${report.category || 'No category'}</span></td>
+        <td>${reporter}</td>
+        <td>${type}</td>
+        <td><span class="status-tag ${statusClass}">${statusText}</span></td>
+        <td>${actionButtons}</td>
+      </tr>`;
+  }).join('');
   attachReportActions(reportsTableBody);
 }
 
-function renderSubReportTable(type, tableBody, emptyMessage) {
-  const reports = getAllReports().filter(report => report.type === type);
+// ── RENDER LOST / FOUND SUB-TABLES ────────────────────────
+async function renderSubReportTable(type, tableBody, emptyMessage) {
+  const reports = (await getAllReports()).filter(r => r.status === type);
   if (!reports.length) {
     tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">${emptyMessage}</td></tr>`;
     return;
   }
-
-  const allReports = getAllReports();
-  tableBody.innerHTML = reports
-    .map(report => {
-      const globalIndex = allReports.findIndex(
-        r => r.date === report.date && r.itemName === report.itemName && r.userEmail === report.userEmail
-      );
-      const reporter = report.userName || report.userEmail || 'Unknown';
-      const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
-      const statusLabels = {
-        open: 'Open',
-        requested: 'Pending Approval',
-        approved: 'Claimed',
-        rejected: 'Rejected',
-      };
-      const statusClasses = {
-        open: 'status-open',
-        requested: 'status-pending',
-        approved: 'status-claimed',
-        rejected: 'status-rejected',
-      };
-      const statusText = statusLabels[status] || 'Open';
-      const statusClass = statusClasses[status] || 'status-open';
-      const claimedText = report.claimed ? 'Yes' : 'No';
-      let actionButtons = '';
-
-      if (status === 'requested') {
-        actionButtons = `
-          <div class="admin-action-group">
-            <button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Approve</button>
-            <button class="admin-action reject-btn" data-index="${globalIndex}" data-action="reject">Reject</button>
-            <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>
-          </div>
-        `;
-      } else if (status === 'approved') {
-        actionButtons = `<button class="admin-action reject-btn" data-index="${globalIndex}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
-      } else if (status === 'rejected') {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
-      } else {
-        actionButtons = `<button class="admin-action approve-btn" data-index="${globalIndex}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-index="${globalIndex}" data-action="delete">Delete</button>`;
-      }
-
-      return `
-        <tr>
-          <td>
-            <strong>${report.itemName || 'Unnamed item'}</strong><br />
-            <span>${report.category || 'No category'}</span>
-          </td>
-          <td>${reporter}</td>
-          <td><span class="status-tag ${statusClass}">${statusText}</span></td>
-          <td>${claimedText}</td>
-          <td>${actionButtons}</td>
-        </tr>
-      `;
-    })
-    .join('');
-
+  tableBody.innerHTML = reports.map((report) => {
+    const reporter = report.userName || report.userEmail || 'Unknown';
+    const status = report.claimStatus || (report.claimed ? 'approved' : 'open');
+    const statusText = statusLabels[status] || 'Open';
+    const statusClass = statusClasses[status] || 'status-open';
+    const claimedText = report.claimed ? 'Yes' : 'No';
+    let actionButtons = '';
+    if (status === 'pending' || status === 'requested') {
+      actionButtons = `
+        <div class="admin-action-group">
+          <button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Approve</button>
+          <button class="admin-action reject-btn" data-id="${report.id}" data-action="reject">Reject</button>
+          <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>
+        </div>`;
+    } else if (status === 'approved') {
+      actionButtons = `<button class="admin-action reject-btn" data-id="${report.id}" data-action="reject">Reject</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    } else if (status === 'rejected') {
+      actionButtons = `<button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Approve</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    } else {
+      actionButtons = `<button class="admin-action approve-btn" data-id="${report.id}" data-action="approve">Mark Claimed</button> <button class="admin-action delete-btn" data-id="${report.id}" data-action="delete">Delete</button>`;
+    }
+    return `
+      <tr>
+        <td><strong>${report.itemName || 'Unnamed item'}</strong><br/><span>${report.category || 'No category'}</span></td>
+        <td>${reporter}</td>
+        <td><span class="status-tag ${statusClass}">${statusText}</span></td>
+        <td>${claimedText}</td>
+        <td>${actionButtons}</td>
+      </tr>`;
+  }).join('');
   attachReportActions(tableBody);
 }
 
-function renderUsersTable() {
-  const users = getUsers();
-  const reports = getAllReports();
+// ── RENDER USERS TABLE ────────────────────────────────────
+async function renderUsersTable() {
+  const users = await getAllUsers();
+  const reports = await getAllReports();
   if (!users.length) {
     usersTableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No registered users available.</td></tr>';
     return;
   }
+  usersTableBody.innerHTML = users.map(user => {
+    const reportCount = reports.filter(r => r.uid === user.id).length;
+    return `
+      <tr>
+        <td>${user.firstName} ${user.lastName}</td>
+        <td>${user.email}</td>
+        <td>${user.phone || 'Not provided'}</td>
+        <td>${reportCount}</td>
+        <td><button class="admin-action delete-user-btn" data-uid="${user.id}" data-action="delete">Delete</button></td>
+      </tr>`;
+  }).join('');
 
-  usersTableBody.innerHTML = users
-    .map(user => {
-      const reportCount = reports.filter(report => report.userEmail === user.email).length;
-      return `
-        <tr>
-          <td>${user.firstName} ${user.lastName}</td>
-          <td>${user.email}</td>
-          <td>${user.phone || 'Not provided'}</td>
-          <td>${reportCount}</td>
-          <td><button class="admin-action delete-user-btn" data-email="${user.email}" data-action="delete">Delete</button></td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  const deleteButtons = usersTableBody.querySelectorAll('.delete-user-btn');
-  deleteButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const email = this.dataset.email;
-      if (!email) return;
+  usersTableBody.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const uid = this.dataset.uid;
+      if (!uid) return;
       if (confirm('Delete this user and all their reports?')) {
-        deleteUser(email);
+        await deleteUser(uid);
       }
     });
   });
 }
 
-function renderClaimRequestsTable() {
-  const reports = getAllReports();
-  const claimRequests = reports.filter(r => r.claimStatus === 'pending' || r.claimStatus === 'approved' || r.claimStatus === 'rejected');
+// ── RENDER CLAIM REQUESTS TABLE ───────────────────────────
+async function renderClaimRequestsTable() {
+  const claims = await getAllClaims();
   const tbody = document.getElementById('claimRequestsTableBody');
-  if (!claimRequests.length) {
+  if (!claims.length) {
     tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No claim requests yet.</td></tr>';
     return;
   }
-  tbody.innerHTML = claimRequests.map((report, index) => {
-    const status = report.claimStatus || 'pending';
+
+  // Fetch item details for each claim
+  const rows = await Promise.all(claims.map(async (claim) => {
+    const itemDoc = await getDoc(doc(db, "items", claim.itemId));
+    const item = itemDoc.exists() ? itemDoc.data() : {};
+    const status = claim.status || 'pending';
     let actionBtns = '';
     if (status === 'pending') {
-      actionBtns = `<button class="admin-action approve-btn" data-claim-index="${index}" data-action="approve">Approve</button> <button class="admin-action reject-btn" data-claim-index="${index}" data-action="reject">Reject</button>`;
-    } else {
-      actionBtns = '';
+      actionBtns = `
+        <button class="admin-action approve-btn" data-claim-id="${claim.id}" data-item-id="${claim.itemId}" data-action="approve">Approve</button>
+        <button class="admin-action reject-btn" data-claim-id="${claim.id}" data-item-id="${claim.itemId}" data-action="reject">Reject</button>`;
     }
     return `
       <tr>
-        <td><strong>${report.itemName}</strong><br><span>${report.category}</span></td>
-        <td>${report.claimerName || report.claimerEmail || ''}</td>
+        <td><strong>${item.itemName || 'Unknown'}</strong><br><span>${item.category || ''}</span></td>
+        <td>${claim.claimerName || claim.claimerEmail || ''}</td>
         <td><span class="status-tag status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
         <td>${actionBtns}</td>
-      </tr>
-    `;
-  }).join('');
-  // Add event listeners for approve/reject
+      </tr>`;
+  }));
+
+  tbody.innerHTML = rows.join('');
+
   tbody.querySelectorAll('.admin-action').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const idx = Number(this.dataset.claimIndex);
+    btn.addEventListener('click', async function () {
+      const claimId = this.dataset.claimId;
+      const itemId = this.dataset.itemId;
       const action = this.dataset.action;
-      handleClaimRequestAction(idx, action);
+      await handleClaimAction(claimId, itemId, action);
     });
   });
 }
 
-function handleClaimRequestAction(index, action) {
-  const reports = getAllReports();
-  const claimRequests = reports.filter(r => r.claimStatus === 'pending' || r.claimStatus === 'approved' || r.claimStatus === 'rejected');
-  const report = claimRequests[index];
-  if (!report) return;
+// ── HANDLE CLAIM APPROVE / REJECT ─────────────────────────
+async function handleClaimAction(claimId, itemId, action) {
   if (action === 'approve') {
-    report.claimStatus = 'approved';
-    report.claimed = true;
-    report.claimResponse = 'Approved by admin';
-  } else if (action === 'reject') {
-    report.claimStatus = 'rejected';
-    report.claimed = false;
-    report.claimResponse = 'Rejected by admin';
-  }
-  // Update global reports
-  const allReports = getAllReports();
-  const globalIdx = allReports.findIndex(r => r.date === report.date && r.itemName === report.itemName && r.userEmail === report.userEmail);
-  if (globalIdx !== -1) {
-    allReports[globalIdx] = report;
-    localStorage.setItem('siit_all_reports', JSON.stringify(allReports));
-  }
-  // Update user's claim requests
-  if (report.claimerEmail) {
-    let claimRequests = JSON.parse(localStorage.getItem(`claims_${report.claimerEmail}`)) || [];
-    claimRequests = claimRequests.map(r => {
-      if (r.date === report.date && r.itemName === report.itemName) {
-        return { ...r, claimStatus: report.claimStatus, claimed: report.claimed, claimResponse: report.claimResponse };
-      }
-      return r;
+    await updateDoc(doc(db, "claims", claimId), {
+      status: 'approved',
+      claimResponse: 'Approved by admin'
     });
-    localStorage.setItem(`claims_${report.claimerEmail}`, JSON.stringify(claimRequests));
+    await updateDoc(doc(db, "items", itemId), {
+      claimStatus: 'approved',
+      claimed: true,
+      claimResponse: 'Approved by admin'
+    });
+  } else if (action === 'reject') {
+    await updateDoc(doc(db, "claims", claimId), {
+      status: 'rejected',
+      claimResponse: 'Rejected by admin'
+    });
+    await updateDoc(doc(db, "items", itemId), {
+      claimStatus: 'rejected',
+      claimed: false,
+      claimResponse: 'Rejected by admin'
+    });
   }
-  renderClaimRequestsTable();
-  renderReportsTable();
+  await refreshDashboard();
 }
 
-function attachReportActions(bodyElement) {
-  const actionButtons = bodyElement.querySelectorAll('.admin-action');
-  actionButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const index = Number(this.dataset.index);
+// ── ATTACH REPORT ACTION BUTTONS ─────────────────────────
+function attachReportActions(tableBody) {
+  tableBody.querySelectorAll('.admin-action').forEach(btn => {
+    btn.addEventListener('click', async function () {
+      const id = this.dataset.id;
       const action = this.dataset.action;
-      handleAdminAction(index, action);
+      if (id) await handleAdminAction(id, action);
     });
   });
 }
 
-function handleAdminAction(index, action) {
-  const reports = getAllReports();
-  const report = reports[index];
-  if (!report) return;
-
+// ── HANDLE REPORT APPROVE / REJECT / DELETE ───────────────
+async function handleAdminAction(itemId, action) {
   if (action === 'approve') {
-    report.claimStatus = 'approved';
-    report.claimed = true;
-    report.claimResponse = 'Approved by admin';
+    await updateDoc(doc(db, "items", itemId), {
+      claimStatus: 'approved',
+      claimed: true,
+      claimResponse: 'Approved by admin'
+    });
+    // Also update related claim doc
+    const claimsSnap = await getDocs(query(collection(db, "claims"), where("itemId", "==", itemId)));
+    for (const claimDoc of claimsSnap.docs) {
+      await updateDoc(claimDoc.ref, { status: 'approved', claimResponse: 'Approved by admin' });
+    }
   } else if (action === 'reject') {
-    report.claimStatus = 'rejected';
-    report.claimed = false;
-    report.claimResponse = 'Rejected by admin';
+    await updateDoc(doc(db, "items", itemId), {
+      claimStatus: 'rejected',
+      claimed: false,
+      claimResponse: 'Rejected by admin'
+    });
+    const claimsSnap = await getDocs(query(collection(db, "claims"), where("itemId", "==", itemId)));
+    for (const claimDoc of claimsSnap.docs) {
+      await updateDoc(claimDoc.ref, { status: 'rejected', claimResponse: 'Rejected by admin' });
+    }
   } else if (action === 'delete') {
-    reports.splice(index, 1);
-    saveAllReports(reports);
-    if (report.userEmail) {
-      let userReports = JSON.parse(localStorage.getItem(`reports_${report.userEmail}`)) || [];
-      userReports = userReports.filter(r => !(r.date === report.date && r.itemName === report.itemName && r.category === report.category));
-      localStorage.setItem(`reports_${report.userEmail}`, JSON.stringify(userReports));
-    }
-    refreshDashboard();
-    return;
-  }
-
-  saveAllReports(reports);
-  if (report.userEmail) {
-    let userReports = JSON.parse(localStorage.getItem(`reports_${report.userEmail}`)) || [];
-    const userIdx = userReports.findIndex(r => r.date === report.date && r.itemName === report.itemName && r.category === report.category);
-    if (userIdx !== -1) {
-      userReports[userIdx].claimStatus = report.claimStatus;
-      userReports[userIdx].claimed = report.claimed;
-      userReports[userIdx].claimResponse = report.claimResponse;
-      localStorage.setItem(`reports_${report.userEmail}`, JSON.stringify(userReports));
+    if (!confirm('Delete this report permanently?')) return;
+    await deleteDoc(doc(db, "items", itemId));
+    // Also delete related claims
+    const claimsSnap = await getDocs(query(collection(db, "claims"), where("itemId", "==", itemId)));
+    for (const claimDoc of claimsSnap.docs) {
+      await deleteDoc(claimDoc.ref);
     }
   }
-
-  refreshDashboard();
+  await refreshDashboard();
 }
 
-function deleteUser(email) {
-  let users = getUsers();
-  users = users.filter(user => user.email !== email);
-  saveUsers(users);
+// ── DELETE USER ───────────────────────────────────────────
+async function deleteUser(uid) {
+  // Delete user doc from Firestore
+  await deleteDoc(doc(db, "users", uid));
+  // Delete all their reports
+  const itemsSnap = await getDocs(query(collection(db, "items"), where("uid", "==", uid)));
+  for (const itemDoc of itemsSnap.docs) {
+    // Delete related claims first
+    const claimsSnap = await getDocs(query(collection(db, "claims"), where("itemId", "==", itemDoc.id)));
+    for (const claimDoc of claimsSnap.docs) await deleteDoc(claimDoc.ref);
+    await deleteDoc(itemDoc.ref);
+  }
+  // Delete their claims
+  const userClaimsSnap = await getDocs(query(collection(db, "claims"), where("claimedBy", "==", uid)));
+  for (const claimDoc of userClaimsSnap.docs) await deleteDoc(claimDoc.ref);
 
-  let reports = getAllReports();
-  reports = reports.filter(report => report.userEmail !== email);
-  saveAllReports(reports);
-  localStorage.removeItem(`reports_${email}`);
-
-  refreshDashboard();
+  await refreshDashboard();
 }
 
-function refreshDashboard() {
-  renderStats();
-  renderReportsTable();
-  renderSubReportTable('lost', lostTableBody, 'No lost item reports yet.');
-  renderSubReportTable('found', foundTableBody, 'No found item reports yet.');
-  renderUsersTable();
-  renderCharts();
-  renderClaimRequestsTable();
+// ── REFRESH DASHBOARD ─────────────────────────────────────
+async function refreshDashboard() {
+  const rangeSelect = document.getElementById('activityRange');
+  const days = rangeSelect ? parseInt(rangeSelect.value) : 7;
+  await renderStats();
+  await renderReportsTable();
+  await renderSubReportTable('lost', lostTableBody, 'No lost item reports yet.');
+  await renderSubReportTable('found', foundTableBody, 'No found item reports yet.');
+  await renderUsersTable();
+  await renderCharts(days);
+  await renderClaimRequestsTable();
 }
 
+// ── TAB SWITCHING ─────────────────────────────────────────
 function switchTab(tabName) {
-  const tabs = document.querySelectorAll('.admin-tab');
-  const panels = document.querySelectorAll('.tab-panel');
-  tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === tabName));
-  panels.forEach(panel => panel.classList.toggle('hidden', panel.dataset.tab !== tabName));
+  document.querySelectorAll('.admin-tab').forEach(tab =>
+    tab.classList.toggle('active', tab.dataset.tab === tabName));
+  document.querySelectorAll('.tab-panel').forEach(panel =>
+    panel.classList.toggle('hidden', panel.dataset.tab !== tabName));
 }
 
-const tabButtons = document.querySelectorAll('.admin-tab');
-tabButtons.forEach(button => {
-  button.addEventListener('click', () => switchTab(button.dataset.tab));
+document.querySelectorAll('.admin-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-refreshBtn.addEventListener('click', refreshDashboard);
+// ── ACTIVITY RANGE FILTER ─────────────────────────────────
+const activityRangeSelect = document.getElementById('activityRange');
+if (activityRangeSelect) {
+  activityRangeSelect.addEventListener('change', async () => {
+    await renderCharts(parseInt(activityRangeSelect.value));
+  });
+}
+
+// ── LOGOUT ────────────────────────────────────────────────
 logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('siit_admin_logged_in');
   window.location.href = 'index.html';
 });
 
-normalizeReports();
-refreshDashboard();
+// ── REFRESH BUTTON ────────────────────────────────────────
+refreshBtn.addEventListener('click', refreshDashboard);
+
+// ── INIT ──────────────────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  refreshDashboard();
+});

@@ -205,17 +205,26 @@
     <p>© 2025 CTU Lost & Found System · Cebu Technological University · All rights reserved.</p>
   </footer>
 
-  <script>
-    // Set logged-in user name and avatar on About page
-    const loggedInEmail = localStorage.getItem('siit_logged_in');
-    const users = JSON.parse(localStorage.getItem('siit_users')) || [];
-    const currentUser = users.find(u => u.email === loggedInEmail);
-    if (currentUser) {
-      const userNameElem = document.querySelector('.user-name');
-      const userAvatarElem = document.querySelector('.user-avatar');
-      if (userNameElem) userNameElem.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-      if (userAvatarElem) userAvatarElem.textContent = `${currentUser.firstName[0]}${currentUser.lastName[0] || ''}`.toUpperCase();
-    }
+  <script type="module" src="firebase.js"></script>
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+    // Load user from Firebase Auth
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+        const initials = ((userData.firstName?.[0] || '') + (userData.lastName?.[0] || '')).toUpperCase();
+
+        const userNameElem = document.querySelector('.user-name');
+        const userAvatarElem = document.querySelector('.user-avatar');
+        if (userNameElem) userNameElem.textContent = fullName;
+        if (userAvatarElem) userAvatarElem.textContent = initials;
+      }
+    });
 
     // Navbar user dropdown toggle
     const navUser = document.querySelector('.nav-user');
@@ -229,10 +238,9 @@
     // Logout handling for About page
     const logoutBtn = document.querySelector('.logout');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', function(e) {
+      logoutBtn.addEventListener('click', async function(e) {
         e.preventDefault();
-        localStorage.removeItem('siit_logged_in');
-        localStorage.removeItem('siit_admin_logged_in');
+        await signOut(auth);
         window.location.href = 'index.html';
       });
     }
