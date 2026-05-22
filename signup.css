@@ -4,6 +4,15 @@
     box-sizing:border-box;
 }
 
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
 body{
     font-family:'Poppins', sans-serif;
     background:#F5F0E0;
@@ -246,26 +255,48 @@ nav a:hover{
 
 /* ================= RESPONSIVE ================= */
 
-@media(max-width:768px){
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 65px;
+    gap: .6rem;
+    padding-block: .7rem;
+  }
 
-    .navbar{
-        padding:0 20px;
-    }
+  nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding-bottom: .4rem;
+  }
 
-    nav ul{
-        gap:20px;
-    }
+  nav a {
+    font-size: .78rem;
+    padding: .35rem .7rem;
+  }
 
-    .signup-card{
-        width:100%;
-    }
+  .logo h2 {
+    font-size: 22px;
+  }
 
-    .input-row{
-        flex-direction:column;
-        gap:0;
-    }
+  .signup-card {
+    width: 100%;
+  }
 
-    .signup-top h1{
-        font-size:34px;
-    }
+  .input-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .signup-top h1 {
+    font-size: 28px;
+  }
+
+  .signup-body {
+    padding: 15px 20px;
+  }
 }

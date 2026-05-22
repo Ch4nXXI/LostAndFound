@@ -1,3 +1,12 @@
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
 /* ===========================
    RESET & BASE
 =========================== */
@@ -632,7 +641,41 @@ body {
 }
 
 @media (max-width: 680px) {
-  .navbar { padding: 0 1rem; }
-  .nav-links { display: none; }
+  .navbar {
+    padding: 0 1rem;
+    flex-wrap: wrap;
+    min-height: 66px;
+    height: auto;
+    gap: .6rem;
+    padding-block: .7rem;
+  }
+
+  .nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    gap: .3rem;
+    padding-bottom: .4rem;
+  }
+
+  .nav-link {
+    font-size: .78rem;
+    padding: .35rem .7rem;
+  }
+
   .section { padding: 50px 0; }
+
+  .about-hero {
+    padding: 50px 1.2rem;
+    min-height: 300px;
+  }
+
+  .hero-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .visual-card {
+    max-width: 100%;
+  }
 }

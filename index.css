@@ -4,6 +4,18 @@
     box-sizing:border-box;
 }
 
+
+
+/* remove scrollbar */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 body{
     font-family:'Poppins', sans-serif;
     background: #F5F0E0;
@@ -112,7 +124,7 @@ nav a{
     font-weight:700;
 
     display:inline-block;
-
+    margin-top: 30px;
     margin-bottom:30px;
 }
 
@@ -298,4 +310,59 @@ nav a{
     font-weight:700;
 
     text-decoration:none;
+}
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 20px;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-block: 12px;
+  }
+
+  nav ul {
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hero {
+    padding: 100px 20px 40px;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .hero-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .hero-text h1 {
+    font-size: 42px;
+  }
+
+  .hero-text p {
+    font-size: 15px;
+  }
+
+  .buttons {
+    flex-direction: column;
+  }
+
+  .buttons button {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .login-card {
+    width: 100%;
+    margin-top: 0;
+    border-radius: 20px;
+  }
+
+  .card-top h2 {
+    font-size: 28px;
+  }
 }
