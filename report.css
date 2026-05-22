@@ -303,6 +303,9 @@ body {
 
 .browse-panel {
   animation-delay: .2s;
+  height: 500px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .panel-header {

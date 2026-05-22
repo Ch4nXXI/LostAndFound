@@ -374,7 +374,9 @@ body {
 .activity-panel {
   flex: none;
   width: 100%;
-  min-height: 275px;
+  height: 270px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .claims-panel {
@@ -833,3 +835,4 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 }
+
