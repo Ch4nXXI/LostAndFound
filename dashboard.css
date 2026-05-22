@@ -778,3 +778,58 @@ body {
     font-size: .78rem;
   }
 }
+
+@media (max-width: 768px) {
+  /* Fix full width filling */
+  body {
+    overflow-x: hidden;
+  }
+
+  .main {
+    padding: 1rem;
+    width: 100%;
+  }
+
+  /* Fix activity log table overflow */
+  .activity-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .activity-table {
+    min-width: 500px;
+    font-size: .75rem;
+  }
+
+  .activity-table thead th {
+    font-size: .65rem;
+    padding: .4rem .5rem;
+  }
+
+  .activity-table tbody td {
+    padding: .6rem .5rem;
+    font-size: .75rem;
+  }
+
+  /* Shrink the view details button */
+  .btn-view {
+    font-size: .7rem;
+    padding: .3rem .6rem;
+  }
+
+  /* Fix stat cards full width */
+  .stats-grid {
+    width: 100%;
+  }
+
+  .stat-card {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  /* Fix claims panel table */
+  .claims-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
